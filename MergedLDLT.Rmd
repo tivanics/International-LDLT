@@ -1,0 +1,785 @@
+---
+title: "HCC: US vs. UK"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 12, results="asis")
+```
+
+```{r}
+library(ggplot2)
+library(survminer)
+library(survival)
+library(dplyr)
+library(tidyverse)
+#library(data.table) 
+library(forestmodel) 
+#library(Hmisc) 
+library(sjPlot) 
+library(stargazer) 
+library(sjmisc) 
+library(arsenal) 
+library(gtsummary)
+library(expss) 
+library(lubridate)
+library(ggsignif)
+library(ggsci)
+library(Greg) #to use timesplitter
+library(magrittr)
+options(scipen=999)
+```
+
+**Read in data**
+```{r}
+bound2 <- read_csv("/Users/Ivanics/Desktop/Research/104. UK vs. US. vs. CAN LDLT/Datafile/merged.csv", guess_max = 300000)
+```
+
+
+```{r}
+bound2 <- bound2 %>% filter(COUNTRY == "US" | COUNTRY == "UK" | COUNTRY == "CAN")
+
+bound2 <- bound2 %>% filter(TX_YR <= 2018)
+
+bound2 <- bound2 %>%
+  mutate(PSURV_years = PSURV/365.25) %>%
+  mutate(GSURV_years = GSURV/365.25)
+
+bound2$COUNTRY <- factor(bound2$COUNTRY, ordered = FALSE)
+bound2$COUNTRY <- relevel(bound2$COUNTRY, ref="US")
+bound2$RVENT <- factor(bound2$RVENT, ordered = FALSE)
+bound2$RVENT <- relevel(bound2$RVENT, ref = "Not ventilated")
+bound2$RETHNIC <- factor(bound2$RETHNIC, ordered = FALSE)
+bound2$RETHNIC <- relevel(bound2$RETHNIC, ref = "White")
+bound2$DCMV <- factor(bound2$DCMV, ordered = FALSE)
+bound2$DCMV <- relevel(bound2$DCMV, ref = "Negative")
+bound2$HCC <- factor(bound2$HCC)
+bound2$HCV <- factor(bound2$HCV)
+bound2$ALD <- factor(bound2$ALD)
+bound2$NASH <- factor(bound2$NASH)
+bound2$PSC <- factor(bound2$PSC)
+bound2$PBC <- factor(bound2$PBC)
+bound2$MET <- factor(bound2$MET)
+bound2$AID <- factor(bound2$AID)
+```
+
+**Recoding graft survival**
+```{r}
+bound2 <- bound2 %>% mutate(
+  GCENSnew = case_when(
+    PCENS == 1 & PSURV_years <= GSURV_years ~ 1,
+    TRUE ~ 0
+  )
+)
+
+bound2 <- bound2 %>% mutate(
+  GSURV_yearsnew = case_when(
+    PCENS == 1 & PSURV_years <= GSURV_years ~ PSURV_years,
+    TRUE ~ GSURV_years
+  )
+)
+```
+
+**Recoding patient survival**
+```{r}
+#1year PSURV
+bound2 <- bound2 %>% mutate(PSURV_1year =
+    case_when(
+      PSURV_years >= 1.0000001 ~ 1,
+      PSURV_years <= 1 ~ PSURV_years
+    ))
+
+#1-year PCENS
+bound2 <- bound2 %>% mutate(PCENS_1year =
+                              case_when(
+                                PSURV_years <= 1 ~ PCENS,
+                                PSURV_years > 1 ~ 0
+                              ))
+
+#3year PSURV
+bound2 <- bound2 %>% mutate(PSURV_3year =
+    case_when(
+      PSURV_years >= 3.000001 ~ 3,
+      PSURV_years <= 3 ~ PSURV_years
+    ))
+
+#3-year PCENS
+bound2 <- bound2 %>% mutate(PCENS_3year =
+                              case_when(
+                                PSURV_years <= 3 ~ PCENS,
+                                PSURV_years > 3 ~ 0
+                              ))
+
+#5year PSURV
+bound2 <- bound2 %>% mutate(PSURV_5year =
+    case_when(
+      PSURV_years >= 5.000001 ~ 5,
+      PSURV_years <= 5 ~ PSURV_years
+    ))
+
+#5-year PCENS
+bound2 <- bound2 %>% mutate(PCENS_5year =
+                              case_when(
+                                PSURV_years <= 5 ~ PCENS,
+                                PSURV_years > 5 ~ 0
+                              ))
+
+#10year PSURV
+bound2 <- bound2 %>% mutate(PSURV_10year =
+    case_when(
+      PSURV_years >= 10.000001 ~ 10,
+      PSURV_years <= 10 ~ PSURV_years
+    ))
+
+#5-year PCENS
+bound2 <- bound2 %>% mutate(PCENS_10year =
+                              case_when(
+                                PSURV_years <= 10 ~ PCENS,
+                                PSURV_years > 10 ~ 0
+                              ))
+
+
+```
+
+```{r}
+bound3 <- bound2
+bound2 <- bound2 %>% filter(DTYPE == "LDLT" & GRAFT_TYPE == "Segmental")
+```
+**Crosstabulating** 
+```{r}
+ftable(xtabs(cbind(PCENS,GCENS)~ COUNTRY, data=bound2))
+ftable(xtabs(cbind(PCENS,GCENSnew)~ COUNTRY, data=bound2))
+```
+
+```{r}
+bound3_2008 <- bound3 %>% filter(TX_YR == 2008)
+tab1 <- tableby(COUNTRY ~
+              DTYPE,
+                data=bound3_2008, test=TRUE, total=TRUE, 
+                numeric.stats=c("medianq1q3"), numeric.test="kwt", cat.test="chisq")
+summary(tab1, title='Graft types 2008', pfootnote=TRUE, digits = 2)
+
+bound3_2018 <- bound3 %>% filter(TX_YR == 2018)
+tab1 <- tableby(COUNTRY ~
+              DTYPE,
+                data=bound3_2018, test=TRUE, total=TRUE, 
+                numeric.stats=c("medianq1q3"), numeric.test="kwt", cat.test="chisq")
+summary(tab1, title='Graft types 2018', pfootnote=TRUE, digits = 2)
+```
+
+
+```{r}
+tab1 <- tableby(COUNTRY ~
+              CIT+
+              DAGE+
+              DBMI+
+              DTYPE+
+              DSEX+
+              GRAFT_TYPE+
+              DTYPE+
+              DCMV,
+              data=bound2, test=TRUE, total=TRUE, 
+                numeric.stats=c("medianq1q3"), numeric.test="kwt", cat.test="chisq")
+summary(tab1, title='Donor characteristics', pfootnote=TRUE, digits = 2)
+```
+
+```{r}
+tab1 <- tableby(COUNTRY ~ 
+              RSEX+
+              RETHNIC+
+              MELD+
+              RREN_SUP+
+              RAGE+
+              RLIFE+
+              RVENT+
+              WAITLIST_TIME+
+              TX_YR+
+              BMI+
+              RAB_SURGERY+
+              RCREAT+
+              RBILIRUBIN+
+              RALBUMIN+
+              RINR+
+              RANTI_HCV+
+              RBG+
+              RASCITES+
+              RENCEPH+ 
+              BLD_GP_MATCH+
+              HCC +
+              HCV +
+                ALD +
+                NASH +
+                PSC +
+                PBC +
+                AID,
+                data=bound2, test=TRUE, total=TRUE, 
+                numeric.stats=c("medianq1q3"), numeric.test="kwt", cat.test="chisq")
+summary(tab1, title='Recipient characteristics', pfootnote=TRUE, digits = 2)
+```
+
+**Summaries for survival**
+```{r}
+#Overall
+summary(tableby(COUNTRY ~ Surv(PSURV_years, PCENS), data=bound2, times=1:10, surv.stats=c("NeventsSurv", "NriskSurv")))
+
+#1 year
+summary(tableby(COUNTRY ~ Surv(PSURV_1year, PCENS_1year), data=bound2, times=1:1, surv.stats=c("NeventsSurv", "NriskSurv")))
+
+#3 year
+summary(tableby(COUNTRY ~ Surv(PSURV_3year, PCENS_3year), data=bound2, times=1:3, surv.stats=c("NeventsSurv", "NriskSurv")))
+
+#5 year
+summary(tableby(COUNTRY ~ Surv(PSURV_5year, PCENS_5year), data=bound2, times=1:5, surv.stats=c("NeventsSurv", "NriskSurv")))
+
+#10 year
+summary(tableby(COUNTRY ~ Surv(PSURV_10year, PCENS_10year), data=bound2, times=1:10, surv.stats=c("NeventsSurv", "NriskSurv")))
+
+#Median
+survfit(Surv(PSURV_years, PCENS) ~ COUNTRY, data = bound2)
+
+summary(survfit(Surv(PSURV_years, PCENS)~COUNTRY, data=bound2), times=1:10)
+
+fit4 <- pairwise_survdiff(Surv(PSURV_years, PCENS) ~ COUNTRY , data = bound2)
+fit4
+
+symnum(fit4$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
+   symbols = c("****", "***", "**", "*", "+", " "),
+   abbr.colnames = FALSE, na = "")
+```
+**OS overall**
+```{r}
+levels(bound2$COUNTRY)
+fit1 <- survfit(Surv(PSURV_years, PCENS) ~ COUNTRY, data = bound2)
+
+ggsurv1 <- ggsurvplot(
+          fit1,               
+          data = bound2,          
+          risk.table = TRUE,     
+          pval = TRUE,
+          pval.size = 6,
+          pval.coord = c(0, 0.8),
+          conf.int = F,         
+          xlim = c(0,5),
+          ylim = c(0.7, 1.00),
+          xlab = "Years from LT",
+          palette = "jama",
+          break.time.by = 1,  
+          title = "",
+          ggtheme = theme_test(base_size=28, base_family = "Helvetica"),
+          fontsize=8,
+          risk.table.height = 0.25,
+          tables.x.text = FALSE,
+          legend.title= "",
+          legend.labs =
+           c("US", "Canada", "UK"),
+        )
+ggsurv1$table <- ggsurv1$table + labs(x = NULL, y = NULL) + theme(plot.title = element_text(size = 28))
+
+ggsurv1$plot <- ggsurv1$plot+ 
+              ggplot2::annotate("text", 
+                                x = 2.5, y = 0.7, # x and y coordinates of the text
+                                label = "Adjusted HR (ref: US, UK HR 1.40, 95% CI 0.76-2.59, Canada HR 0.59, 95% CI 0.29-1.22)", size = 6) 
+ggsurv1
+```
+
+**OS overall HCC**
+```{r}
+HCConly <- bound2 %>% filter(HCC == "1")
+fit1 <- survfit(Surv(PSURV_years, PCENS) ~ COUNTRY, data = HCConly)
+
+ggsurv1 <- ggsurvplot(
+           fit1,               
+           data = HCConly,          
+           risk.table = TRUE,     
+           pval = TRUE,
+           pval.coord = c(0, 0.8),
+           pval.size = 6,
+           conf.int = F,         
+           xlim = c(0,5),
+           ylim = c(0.7, 1.00),
+           xlab = "Years from LT",
+           palette = "jama", #dont use red and green
+           break.time.by = 1,  
+           title = "",
+      # subtitle = "with 95% confidence intervals",
+               ggtheme = theme_test(base_size=28, base_family = "Helvetica"),
+         # risk.table.y.text.col = F,
+        fontsize=8,
+         risk.table.height = 0.25,
+        #  risk.table.y.text = T,
+        #  surv.median.line = "hv", 
+           legend.title= "",
+      tables.x.text = FALSE,
+          legend.labs =
+           c("US", "Canada", "UK")
+        )
+
+ggsurv1$plot <- ggsurv1$plot+ 
+              ggplot2::annotate("text", 
+                                x = 2.5, y = 0.7, # x and y coordinates of the text
+                                label = "Adjusted HR (ref: US, UK HR 0.47, 95% CI 0.06-3.45, Canada HR 0.21, 95% CI 0.03-1.59)", size = 6)
+ggsurv1
+```
+
+**OS overall non-HCC**
+```{r}
+nonHCC <- bound2 %>% filter(HCC == "0")
+fit1 <- survfit(Surv(PSURV_years, PCENS) ~ COUNTRY, data = nonHCC)
+
+ggsurv1 <- ggsurvplot(
+           fit1,               
+           data = nonHCC,          
+           risk.table = TRUE,     
+           pval = TRUE,
+           pval.coord = c(0, 0.8),
+           pval.size = 6,
+           conf.int = F,         
+           xlim = c(0,5),
+           ylim = c(0.7, 1.00),
+           xlab = "Years from LT",
+           palette = "jama",
+           break.time.by = 1,  
+           title = "",
+      # subtitle = "with 95% confidence intervals",
+               ggtheme = theme_test(base_size=28, base_family = "Helvetica"),
+         # risk.table.y.text.col = F,
+         fontsize=8,
+         risk.table.height = 0.25,
+        #  risk.table.y.text = T,
+        #  surv.median.line = "hv", 
+           legend.title= "",
+      tables.x.text = FALSE,
+          legend.labs =
+           c("US", "Canada", "UK")
+        )
+ggsurv1
+
+ggsurv1$plot <- ggsurv1$plot+ 
+              ggplot2::annotate("text", 
+                                x = 2.5, y = 0.7, # x and y coordinates of the text
+                                label = "Adjusted HR (ref: US, UK HR 1.52, 95% CI 0.80-2.88, Canada HR 0.53, 95% CI 0.25-1.13)", size = 6)
+ggsurv1
+```
+
+**US vs. UK vs. CAN**
+**Forest model patient survival**
+```{r}
+bound4 <- bound2 %>% filter(COUNTRY == "US" | COUNTRY == "UK" | COUNTRY == "CAN")
+
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
+              bound4$CIT+
+              bound4$RSEX+
+              bound4$BMI+
+              bound4$RBILIRUBIN+
+              bound4$RINR+
+              bound4$RCREAT+
+              bound4$RREN_SUP+
+              bound4$DAGE+
+              bound4$RAGE+
+              bound4$WAITLIST_TIME+
+              bound4$DSEX+
+              bound4$TX_YR+
+              bound4$HCC+
+              bound4$PSC+
+              bound4$ALD+
+              bound4$HCV,
+        data=bound4)
+forest_model(cox1) 
+
+
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~HCConly$COUNTRY+
+              HCConly$CIT+
+              HCConly$RSEX+
+              HCConly$BMI+
+              HCConly$RBILIRUBIN+
+              HCConly$RINR+
+              HCConly$RCREAT+
+              HCConly$DAGE+
+              HCConly$RAGE+
+              HCConly$WAITLIST_TIME+
+              HCConly$DSEX+
+              HCConly$TX_YR,
+        data=HCConly)
+forest_model(cox1) 
+
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~nonHCC$COUNTRY+
+              nonHCC$CIT+
+              nonHCC$RSEX+
+              nonHCC$BMI+
+              nonHCC$RBILIRUBIN+
+              nonHCC$RINR+
+              nonHCC$RCREAT+
+              nonHCC$RREN_SUP+
+              nonHCC$DAGE+
+              nonHCC$RAGE+
+              nonHCC$WAITLIST_TIME+
+              nonHCC$DSEX+
+              nonHCC$TX_YR,
+        data=nonHCC)
+forest_model(cox1)
+
+#Landmark at 90 days
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
+              bound4$CIT+
+              bound4$RSEX+
+              bound4$BMI+
+              bound4$RBILIRUBIN+
+              bound4$RINR+
+              bound4$RCREAT+
+              bound4$RREN_SUP+
+              bound4$DAGE+
+              bound4$RAGE+
+              bound4$WAITLIST_TIME+
+              bound4$DSEX+
+              bound4$TX_YR+
+              bound4$HCC+
+              bound4$PSC+
+              bound4$ALD+
+              bound4$HCV,
+              subset = PSURV_years <= 0.2464066,
+        data=bound4)
+forest_model(cox1) 
+
+#Landmark 90 days to 2 years
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
+              bound4$CIT+
+              bound4$RSEX+
+              bound4$BMI+
+              bound4$RBILIRUBIN+
+              bound4$RINR+
+              bound4$RCREAT+
+              bound4$RREN_SUP+
+              bound4$DAGE+
+              bound4$RAGE+
+              bound4$WAITLIST_TIME+
+              bound4$DSEX+
+              bound4$TX_YR+
+              bound4$HCC+
+              bound4$PSC+
+              bound4$ALD+
+              bound4$HCV,
+              subset = PSURV_years > 0.2464066 & PSURV_years <= 2,
+        data=bound4)
+forest_model(cox1) 
+
+#Landmark 5
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
+              bound4$CIT+
+              bound4$RSEX+
+              bound4$BMI+
+              bound4$RBILIRUBIN+
+              bound4$RINR+
+              bound4$RCREAT+
+              bound4$RREN_SUP+
+              bound4$DAGE+
+              bound4$RAGE+
+              bound4$WAITLIST_TIME+
+              bound4$DSEX+
+              bound4$TX_YR+
+              bound4$HCC+
+              bound4$PSC+
+              bound4$ALD+
+              bound4$HCV,
+              subset = PSURV_years > 2 & PSURV_years <= 5,
+        data=bound4)
+forest_model(cox1) 
+
+#Uni
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY,
+        data=bound4)
+forest_model(cox1) 
+
+#Just donor
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
+              bound4$CIT+
+              bound4$DAGE+
+              bound4$DSEX+
+              bound4$TX_YR,
+        data=bound4)
+forest_model(cox1) 
+
+#Just recipient
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
+              bound4$RSEX+
+              bound4$BMI+  
+              bound4$RBILIRUBIN+
+              bound4$RINR+
+              bound4$RCREAT+
+              bound4$RREN_SUP+
+              bound4$RAGE+
+              bound4$WAITLIST_TIME+
+              bound4$TX_YR+
+              bound4$HCC+
+              bound4$PSC+
+              bound4$ALD+
+              bound4$HCV,
+        data=bound4)
+forest_model(cox1) 
+```
+
+```{r CHECK THIS}
+library(scales)
+#SEnd Gabi RDS file. 
+Trendsovertime <- bound4 %>% select(TX_YR, COUNTRY) 
+Trendsovertime <- Trendsovertime %>% group_by(TX_YR, COUNTRY) %>% mutate(count = n())
+Trendsovertime <- Trendsovertime %>% group_by(TX_YR) %>% mutate(countyr = n())
+Trendsovertime <- Trendsovertime %>% mutate(percentage = count/countyr)
+
+#Counts per year
+ggplot(Trendsovertime, aes(factor(TX_YR), y = count, group = COUNTRY, 
+                  color = COUNTRY)) +
+  geom_line(size = 1.5, alpha = 0.8) +
+  geom_point(size = 2) +
+  scale_color_npg(name="Country") +
+  #scale_color_brewer(name = "Etiology", palette = "Set1")+
+  theme_test(base_size = 32) +
+  xlab("Year of transplant") +
+  ylab("Number of transplants") +
+  scale_x_discrete(expand = expansion(mult = c(0, 0))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0,350)) +
+  annotate("text", x = 8, y = 70, label = "Canada: Cox-Stuart trend test p=0.49", size = 5) +
+  annotate("text", x = 8, y = 20, label = "UK: Cox-Stuart trend test p=0.73", size = 5) +
+  annotate("text", x = 6, y = 280, label = "US: Cox-Stuart trend test p=0.08", size = 5)
+  
+
+```
+
+```{r CHECK THIS}
+COUNTYEAR <- bound3 %>% group_by(TX_YR, COUNTRY) %>% mutate(countYEAR = n()) %>% ungroup()
+COUNTYEAR <- COUNTYEAR %>% select(TX_YR, COUNTRY, countYEAR)
+
+LDLT <- bound5 %>% filter(LDLT=="1" & GRAFT_TYPE == "Segmental") %>% group_by(TX_YR, COUNTRY) %>% mutate(countLDLT = n()) %>% ungroup()
+LDLT <- LDLT %>% select(TX_YR, COUNTRY, countLDLT) 
+LDLT <- distinct(TX_YR, COUNTRY)
+
+unique_rows1 <- !duplicated(LDLT[c("TX_YR","COUNTRY")])
+unique.df1 <- LDLT[unique_rows1,]
+
+unique_rows2 <- !duplicated(COUNTYEAR[c("TX_YR","COUNTRY")])
+unique.df2 <- COUNTYEAR[unique_rows2,]
+
+unique.df2
+unique.df1
+test <- merge(unique.df2, unique.df1, by=c("TX_YR", "COUNTRY"))
+test
+
+ggplot(test, aes(factor(TX_YR), y = countLDLT, group = COUNTRY, 
+                  color = COUNTRY)) +
+  geom_area(size = 1.5, alpha = 0.8, color_palette()) +
+  geom_area(data=test, aes(factor(TX_YR), y=countYEAR, group = COUNTRY, color=COUNTRY), size = 1.5, alpha=0.1) +
+  scale_color_jama(name="Country") +
+  theme_test(base_size = 18) +
+  xlab("Year of transplant") +
+  ylab("Number of transplants") +
+  facet_grid(.~COUNTRY, scales="free_y")+
+  scale_x_discrete(expand = expansion(mult = c(0, 0)), breaks=seq(2008, 2018, 4)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 6660))
+
+#saveRDS(bound3, file = "/Users/Ivanics/Desktop/Research/104. UK vs. US. vs. CAN LDLT/Analysis/bound3forgraph.rds")
+```  
+
+
+```{r}
+#Cox-stuart trend test Canada
+library(trend)
+Canada <- Trendsovertime %>% filter(COUNTRY == "CAN") %>% select(count, TX_YR)
+
+x <- Canada %>% distinct(TX_YR, .keep_all = T)  %>% arrange((TX_YR)) %>% as.data.frame()
+x
+x <- x[, "count"]
+bartels.test(x)
+cs.test(x)
+
+#Canada proportion
+x <- c(0.201, 0.172, 0.164, 0.150, 0.185, 0.164, 0.171, 0.156, 0.113, 0.110, 0.138)
+cs.test(x)
+
+#Cox-stuart trend test UK
+UK <- Trendsovertime %>% filter(COUNTRY == "UK") %>% select(count, TX_YR)
+
+x <- UK %>% distinct(TX_YR, .keep_all = T)  %>% arrange((TX_YR)) %>% as.data.frame()
+x
+x <- x[, "count"]
+bartels.test(x)
+cs.test(x)
+
+x <- c(0.0169, 0.0218, 0.0123, 0.0191, 0.0178, 0.0178, 0.0119, 0.024, 0.0148, 0.00824, 0.00389)
+cs.test(x)
+
+#Cox-stuart trend test US
+US <- Trendsovertime %>% filter(COUNTRY == "US") %>% select(count, TX_YR)
+
+x <- US %>% distinct(TX_YR, .keep_all = T)  %>% arrange((TX_YR)) %>% as.data.frame()
+x
+x <- x[, "count"]
+bartels.test(x)
+cs.test(x)
+
+x <- c(0.0341, 0.0324, 0.0419, 0.0366, 0.0381, 0.0406, 0.0418, 0.0491, 0.0451,0.0456, 0.05)
+cs.test(x)
+```
+
+```{r}
+Trendsovertimedonortype <- bound3 %>% select(TX_YR, DTYPE, COUNTRY) 
+
+Trendsovertimedonortype <- Trendsovertimedonortype %>% group_by(TX_YR, COUNTRY, DTYPE) %>% mutate(count = n()) %>% ungroup()
+
+Trendsovertimedonortype <- Trendsovertimedonortype %>% group_by(TX_YR, COUNTRY) %>% mutate(countyr = n()) %>% ungroup()
+
+Trendsovertimedonortype <- Trendsovertimedonortype %>% mutate(percentage = count/countyr)
+
+Trendsovertimedonortype <- Trendsovertimedonortype %>% filter(DTYPE == "LDLT")
+
+Trendsovertimedonortype %>% group_by(COUNTRY, TX_YR, percentage) %>% count() %>% ungroup() %>% print(n=40)
+
+Percentage <- c(0.0341, 0.0324, 0.0419, 0.0366, 0.0381, 0.0406, 0.0418, 0.0491, 0.0451,0.0456, 0.05, 0.201, 0.172, 0.164, 0.150, 0.185, 0.164, 0.171, 0.156, 0.113, 0.110, 0.138, 0.0169, 0.0218, 0.0123, 0.0191, 0.0178, 0.0178, 0.0119, 0.024, 0.0148, 0.00824, 0.00389)
+Country <- c("US", "US", "US", "US", "US", "US", "US", "US", "US", "US", "US", "CAN", "CAN", "CAN", "CAN", "CAN" , "CAN", "CAN", "CAN", "CAN", "CAN", "CAN", "UK", "UK", "UK", "UK", "UK", "UK", "UK", "UK", "UK", "UK", "UK")
+Year <- c(2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
+
+Trendsovertimedonortype <- data_frame(Percentage, Country, Year)
+
+Trendsovertimedonortype$Country <- factor(Trendsovertimedonortype$Country)
+Trendsovertimedonortype$Country <- relevel(Trendsovertimedonortype$Country, "US")
+
+#Counts per year
+ggplot(Trendsovertimedonortype, aes(factor(Year), y = Percentage*100, group = Country, 
+                  color = Country)) +
+  geom_line(size = 1.5, alpha = 0.8) +
+  geom_point(size = 2) +
+  scale_color_npg(name="Country") +
+  #scale_color_brewer(name = "Etiology", palette = "Set1")+
+  theme_test(base_size = 32) +
+  xlab("Year of transplant") +
+  ylab("Percent of transplants (%)") +
+  scale_x_discrete(expand = expansion(mult = c(0, 0))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0,25)) +
+  annotate("text", x = 8, y = 19, label = "Canada: Cox-Stuart trend test p=0.08", size = 5) +
+  annotate("text", x = 8, y = 3, label = "UK: Cox-Stuart trend test p=0.49", size = 5) +
+  annotate("text", x = 8, y = 6, label = "US: Cox-Stuart trend test p=0.08", size = 5) 
+```
+
+**Multiple imputations**
+```{r eval = FALSE}
+library(mice)
+
+UKvUSvCANvsUHNforimputation <- bound2 %>% select(TX_YR, RAGE, PSURV, PCENS, DAGE, DTYPE, DBMI, DCMV, DSEX, BLD_GP_MATCH, GRAFT_TYPE, CIT, RSEX, RETHNIC, BMI, WAITLIST_TIME, TRANSPLANT_UNIT, MELD, RREN_SUP, RVENT, RAB_SURGERY, RLIFE, RASCITES, RENCEPH, RBG, RANTI_HCV, RALBUMIN, RINR, RBILIRUBIN, RCREAT, COUNTRY, UKT_PLDGRP, NASH, PSURV_years, PSURV_1year, PCENS_1year, PSURV_3year, PCENS_3year, PSURV_5year, PCENS_5year, UHN)
+
+sapply(UKvUSvCANvsUHNforimputation, function(x) sum(is.na(x)))
+
+#Imputation
+init1 <- mice(UKvUSvCANvsUHNforimputation, m=20, maxit=20, seed = 999)
+
+init1$method
+
+imputed <- complete(init1, 3)
+View(imputed)
+summary(init1)
+densityplot(init1)
+
+sapply(UKvUSvCANvsUHNforimputation, function(x) sum(is.na(x)))
+
+modelFitpre <- with(UKvUSvCANvsUHNforimputation, 
+                    coxph(formula= Surv(PSURV,PCENS)~COUNTRY+
+              CIT+
+              RSEX+
+              BMI+
+              RINR+
+              RBILIRUBIN+
+              RCREAT+
+              RREN_SUP+
+              DAGE+
+              RAGE+
+              WAITLIST_TIME+
+              DSEX+
+              GRAFT_TYPE+
+              TX_YR, data=UKvUSvCANvsUHNforimputation))
+summary(modelFitpre)
+
+
+#Landmark 0-90 days
+coximpute <- with(init1, coxph(Surv(PSURV,PCENS)~ COUNTRY+
+              CIT+
+              RSEX+
+              BMI+
+              RINR+
+              RBILIRUBIN+
+              RCREAT+
+              RREN_SUP+
+              DAGE+
+              RAGE+
+              WAITLIST_TIME+
+              DSEX+
+              GRAFT_TYPE+
+              TX_YR, 
+              subset =  PSURV_years <= 0.2464066))
+summary(pool(coximpute), conf.int = T, exponentiate = T)
+
+#Landmark 90-days to 2 years
+coximpute <- with(init1, coxph(Surv(PSURV,PCENS)~ COUNTRY+
+              CIT+
+              RSEX+
+              BMI+
+              RINR+
+              RBILIRUBIN+
+              RCREAT+
+              RREN_SUP+
+              DAGE+
+              RAGE+
+              WAITLIST_TIME+
+              DSEX+
+              GRAFT_TYPE+
+              TX_YR, 
+              subset = COUNTRY != "CAN" & PSURV_years > 0.2464066 & PSURV_years <= 2))
+summary(pool(coximpute), conf.int = T, exponentiate = T)
+
+#Landmark 2years to 5 years
+coximpute <- with(init1, coxph(Surv(PSURV,PCENS)~ COUNTRY+
+              CIT+
+              RSEX+
+              BMI+
+              RINR+
+              RBILIRUBIN+
+              RCREAT+
+              RREN_SUP+
+              DAGE+
+              RAGE+
+              WAITLIST_TIME+
+              DSEX+
+              GRAFT_TYPE+
+              TX_YR, 
+              subset = PSURV_years > 2 & PSURV_years <= 5))
+summary(pool(coximpute), conf.int = T, exponentiate = T)
+
+
+#Uni
+coximpute <- with(init1, coxph(Surv(PSURV,PCENS)~ COUNTRY)
+summary(pool(coximpute), conf.int = T, exponentiate = T)
+
+#Just donor
+coximpute <- with(init1, coxph(Surv(PSURV,PCENS)~ COUNTRY+
+              CIT+
+              DAGE+
+              DTYPE+
+              DSEX+
+              GRAFT_TYPE+
+              TX_YR)))
+summary(pool(coximpute), conf.int = T, exponentiate = T)
+
+#Just recipient
+coximpute <- with(init1, coxph(Surv(PSURV,PCENS)~ COUNTRY+
+              RSEX+
+              BMI+
+              RINR+
+              RBILIRUBIN+
+              RCREAT+
+              RREN_SUP+
+              RAGE+
+              WAITLIST_TIME+
+              TX_YR)))
+summary(pool(coximpute), conf.int = T, exponentiate = T)
+```
+
+
+
