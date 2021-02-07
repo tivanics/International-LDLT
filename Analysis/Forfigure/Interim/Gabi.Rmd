@@ -1,0 +1,93 @@
+---
+title: "ForGabi"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 12, results="asis")
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(ggsci)
+options(scipen=999)
+```
+
+```{r}
+bound3 <- readRDS(file = "/Users/Ivanics/Desktop/Research/104. UK vs. US. vs. CAN LDLT/Analysis/Forfigure/bound3forgraph.rds")
+
+```
+
+```{r What i showed you before}
+bound2 <- bound3 %>% filter(DTYPE == "LDLT" & GRAFT_TYPE == "Segmental")
+
+bound4 <- bound2 %>% filter(COUNTRY == "US" | COUNTRY == "UK" | COUNTRY == "CAN")
+Trendsovertime <- bound4 %>% select(TX_YR, COUNTRY) 
+Trendsovertime <- Trendsovertime %>% group_by(TX_YR, COUNTRY) %>% mutate(count = n())
+Trendsovertime <- Trendsovertime %>% group_by(TX_YR) %>% mutate(countyr = n())
+Trendsovertime <- Trendsovertime %>% mutate(percentage = count/countyr)
+
+#Counts per year
+ggplot(Trendsovertime, aes(factor(TX_YR), y = count, group = COUNTRY, 
+                  color = COUNTRY)) +
+  geom_line(size = 1.5, alpha = 0.8) +
+  geom_point(size = 2) +
+  scale_color_npg(name="Country") +
+  #scale_color_brewer(name = "Etiology", palette = "Set1")+
+  theme_test(base_size = 32) +
+  xlab("Year of transplant") +
+  ylab("Number of transplants") +
+  scale_x_discrete(expand = expansion(mult = c(0, 0))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0,350)) +
+  annotate("text", x = 8, y = 70, label = "Canada: Cox-Stuart trend test p=0.49", size = 5) +
+  annotate("text", x = 8, y = 20, label = "UK: Cox-Stuart trend test p=0.73", size = 5) +
+  annotate("text", x = 6, y = 280, label = "US: Cox-Stuart trend test p=0.08", size = 5)
+
+```
+
+```{r Trying to optimize visualization}
+#Here i create a count per year per country (how many transplants done per country per year)
+COUNTYEAR <- bound3 %>% group_by(TX_YR, COUNTRY) %>% mutate(countYEAR = n()) %>% ungroup()
+COUNTYEAR <- COUNTYEAR %>% select(TX_YR, COUNTRY, countYEAR)
+
+#here i subset to only living donor liver transplants, then group by year and country, and count (how many LDLTs done per country per year)
+LDLT <- bound5 %>% filter(LDLT=="1" & GRAFT_TYPE == "Segmental") %>% group_by(TX_YR, COUNTRY) %>% mutate(countLDLT = n()) %>% ungroup()
+
+#select only the variables i want
+LDLT <- LDLT %>% select(TX_YR, COUNTRY, countLDLT) 
+
+#keep only one year and country combination
+LDLT <- distinct(TX_YR, COUNTRY)
+
+#only keep one unique TX_YR and COUNTRY combo (so only one 2014 US for example) (for the LDLT only dataset)
+unique_rows1 <- !duplicated(LDLT[c("TX_YR","COUNTRY")])
+unique.df1 <- LDLT[unique_rows1,]
+
+#same thing here (for the all transplant dataset)
+unique_rows2 <- !duplicated(COUNTYEAR[c("TX_YR","COUNTRY")])
+unique.df2 <- COUNTYEAR[unique_rows2,]
+
+#merge the two by TX_YR and country, now there is a column of transplants per year, and another column of how many LDLTs per year
+test <- merge(unique.df2, unique.df1, by=c("TX_YR", "COUNTRY"))
+head(test)
+
+#Trying plot
+ggplot(test, aes(factor(TX_YR), y = countLDLT, group = COUNTRY, 
+                  color = COUNTRY)) +
+  geom_area(size = 1.5, alpha = 0.8, color_palette()) +
+  geom_area(data=test, aes(factor(TX_YR), y=countYEAR, group = COUNTRY, color=COUNTRY), size = 1.5, alpha=0.1) +
+  scale_color_jama(name="Country") +
+  theme_test(base_size = 18) +
+  xlab("Year of transplant") +
+  ylab("Number of transplants") +
+  facet_grid(.~COUNTRY, scales="free_y")+
+  scale_x_discrete(expand = expansion(mult = c(0, 0)), breaks=seq(2008, 2018, 4)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 6660))
+```
