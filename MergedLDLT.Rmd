@@ -35,6 +35,8 @@ options(scipen=999)
 **Read in data**
 ```{r}
 bound2 <- read_csv("/Users/Ivanics/Desktop/Research/104. UK vs. US. vs. CAN LDLT/Datafile/merged.csv", guess_max = 300000)
+
+#todo
 ```
 
 
