@@ -29,7 +29,7 @@ library(ggsignif)
 library(ggsci)
 library(Greg) #to use timesplitter
 library(magrittr)
-options(scipen=999)
+options(scipen=998)
 ```
 
 **Read in data**
