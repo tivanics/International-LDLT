@@ -71,6 +71,11 @@ bound2 <- bound2 %>% mutate(LDLT = case_when(
 )) %>% mutate(LDLT = factor(LDLT))
 ```
 
+```{r}
+bound2 <- bound2 %>% mutate(MELD_calculated = 3.78*log(RBILIRUBIN) + 11.2*log(RINR) + 9.57*log(RCREAT) + 6.43)
+```
+
+
 **Recoding graft survival**
 ```{r}
 bound2 <- bound2 %>% mutate(
@@ -218,6 +223,7 @@ tab1 <- tableby(COUNTRY ~
               RSEX+
               RETHNIC+
               MELD+
+              MELD_calculated+
               RREN_SUP+
               RAGE+
               RLIFE+
