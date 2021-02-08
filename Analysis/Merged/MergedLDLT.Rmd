@@ -29,14 +29,12 @@ library(ggsignif)
 library(ggsci)
 library(Greg) #to use timesplitter
 library(magrittr)
-options(scipen=998)
+options(scipen=999)
 ```
 
 **Read in data**
 ```{r}
-bound2 <- read_csv("/Users/Ivanics/Desktop/Research/104. UK vs. US. vs. CAN LDLT/Datafile/merged.csv", guess_max = 300000)
-
-#todo
+bound2 <- read_csv("/Users/Ivanics/Desktop/GitHub/International-LDLT/Datafile/merged.csv", guess_max = 300000)
 ```
 
 
@@ -65,6 +63,12 @@ bound2$PSC <- factor(bound2$PSC)
 bound2$PBC <- factor(bound2$PBC)
 bound2$MET <- factor(bound2$MET)
 bound2$AID <- factor(bound2$AID)
+bound2$TRANSPLANT_UNIT <- factor(bound2$TRANSPLANT_UNIT)
+
+bound2 <- bound2 %>% mutate(LDLT = case_when(
+  DTYPE == "LDLT" & GRAFT_TYPE == "Segmental" ~ 1,
+  TRUE ~ 0
+)) %>% mutate(LDLT = factor(LDLT))
 ```
 
 **Recoding graft survival**
@@ -149,6 +153,28 @@ bound2 <- bound2 %>% mutate(PCENS_10year =
 bound3 <- bound2
 bound2 <- bound2 %>% filter(DTYPE == "LDLT" & GRAFT_TYPE == "Segmental")
 ```
+
+
+```{r}
+#creatining a variable for center count (number of appearances of a center in LT pts)
+bound2 <- bound2 %>% 
+  group_by(TRANSPLANT_UNIT, TX_YR) %>%
+  mutate(count = n()) %>%
+  ungroup
+
+summary(bound2$count)
+
+#creating a variable for center experience according to percentile of count
+bound2 <- bound2 %>%
+  mutate(Centerpercentile =
+           case_when(
+             count <7 ~ 1,
+             count >=7 & count < 22 ~2,
+             count >=22 ~3,
+           )) %>%
+  mutate(Centerpercentile = factor(Centerpercentile, labels = c("<25%ile", "25-75%ile", ">75%ile")))
+```
+
 **Crosstabulating** 
 ```{r}
 ftable(xtabs(cbind(PCENS,GCENS)~ COUNTRY, data=bound2))
@@ -282,7 +308,37 @@ ggsurv1$table <- ggsurv1$table + labs(x = NULL, y = NULL) + theme(plot.title = e
 ggsurv1$plot <- ggsurv1$plot+ 
               ggplot2::annotate("text", 
                                 x = 2.5, y = 0.7, # x and y coordinates of the text
-                                label = "Adjusted HR (ref: US, UK HR 1.40, 95% CI 0.76-2.59, Canada HR 0.59, 95% CI 0.29-1.22)", size = 6) 
+                                label = "Adjusted HR (ref: US, UK HR 1.26, 95% CI 0.67-2.39, Canada HR 0.61, 95% CI 0.30-1.26)", size = 6) 
+ggsurv1
+```
+
+**OS overall by percentile**
+```{r}
+levels(bound2$COUNTRY)
+fit1 <- survfit(Surv(PSURV_years, PCENS) ~ Centerpercentile, data = bound2)
+
+ggsurv1 <- ggsurvplot(
+          fit1,               
+          data = bound2,          
+          risk.table = TRUE,     
+          pval = TRUE,
+          pval.size = 6,
+          pval.coord = c(0, 0.8),
+          conf.int = F,         
+          xlim = c(0,5),
+          ylim = c(0.7, 1.00),
+          xlab = "Years from LT",
+          palette = "jama",
+          break.time.by = 1,  
+          title = "",
+          ggtheme = theme_test(base_size=28, base_family = "Helvetica"),
+          fontsize=8,
+          risk.table.height = 0.25,
+          tables.x.text = FALSE,
+          legend.title= "",
+          legend.labs =
+           c("<25%ile", "25%-75%ile", ">75%ile"),
+        )
 ggsurv1
 ```
 
@@ -321,7 +377,7 @@ ggsurv1 <- ggsurvplot(
 ggsurv1$plot <- ggsurv1$plot+ 
               ggplot2::annotate("text", 
                                 x = 2.5, y = 0.7, # x and y coordinates of the text
-                                label = "Adjusted HR (ref: US, UK HR 0.47, 95% CI 0.06-3.45, Canada HR 0.21, 95% CI 0.03-1.59)", size = 6)
+                                label = "Adjusted HR (ref: US, UK HR 0.45, 95% CI 0.06-3.47, Canada HR 0.21, 95% CI 0.03-1.61)", size = 6)
 ggsurv1
 ```
 
@@ -361,7 +417,127 @@ ggsurv1
 ggsurv1$plot <- ggsurv1$plot+ 
               ggplot2::annotate("text", 
                                 x = 2.5, y = 0.7, # x and y coordinates of the text
-                                label = "Adjusted HR (ref: US, UK HR 1.52, 95% CI 0.80-2.88, Canada HR 0.53, 95% CI 0.25-1.13)", size = 6)
+                                label = "Adjusted HR (ref: US, UK HR 1.36, 95% CI 0.70-2.66, Canada HR 0.54, 95% CI 0.25-1.16)", size = 6)
+ggsurv1
+```
+
+**OS overall DDLT vs LDLT US**
+```{r}
+US <- bound3 %>% filter(COUNTRY == "US")
+fit1 <- survfit(Surv(PSURV_years, PCENS) ~ LDLT, data = US)
+
+ggsurv1 <- ggsurvplot(
+           fit1,               
+           data = US,          
+           risk.table = TRUE,     
+           pval = TRUE,
+           pval.coord = c(0, 0.8),
+           pval.size = 6,
+           conf.int = F,         
+           xlim = c(0,5),
+           ylim = c(0.5,¬Òl 1.00),
+           xlab = "Years from LT",
+           palette = "jama",
+           break.time.by = 1,  
+           title = "United States",
+      # subtitle = "with 95% confidence intervals",
+               ggtheme = theme_test(base_size=28, base_family = "Helvetica"),
+         # risk.table.y.text.col = F,
+         fontsize=8,
+         risk.table.height = 0.25,
+        #  risk.table.y.text = T,
+        #  surv.median.line = "hv", 
+           legend.title= "",
+      tables.x.text = FALSE,
+          legend.labs =
+           c("Non-LDLT", "LDLT")
+        )
+ggsurv1
+
+ggsurv1$plot <- ggsurv1$plot+ 
+              ggplot2::annotate("text", 
+                                x = 2.5, y = 0.7, # x and y coordinates of the text
+                                label = "Adjusted HR (ref: non-DDLT, HR LDLT 1.02, 95% CI 0.91-1.14)", size = 6)
+ggsurv1
+```
+
+**OS overall DDLT vs LDLT UK**
+```{r}
+UK <- bound3 %>% filter(COUNTRY == "UK")
+fit1 <- survfit(Surv(PSURV_years, PCENS) ~ LDLT, data = UK)
+
+ggsurv1 <- ggsurvplot(
+           fit1,               
+           data = UK,          
+           risk.table = TRUE,     
+           pval = TRUE,
+           pval.coord = c(0, 0.8),
+           pval.size = 6,
+           conf.int = F,         
+           xlim = c(0,5),
+           ylim = c(0.5, 1.00),
+           xlab = "Years from LT",
+           palette = "jama",
+           break.time.by = 1,  
+           title = "United Kingdom",
+      # subtitle = "with 95% confidence intervals",
+               ggtheme = theme_test(base_size=28, base_family = "Helvetica"),
+         # risk.table.y.text.col = F,
+         fontsize=8,
+         risk.table.height = 0.25,
+        #  risk.table.y.text = T,
+        #  surv.median.line = "hv", 
+           legend.title= "",
+      tables.x.text = FALSE,
+          legend.labs =
+           c("Non-LDLT", "LDLT")
+        )
+ggsurv1
+
+ggsurv1$plot <- ggsurv1$plot+ 
+              ggplot2::annotate("text", 
+                                x = 2.5, y = 0.7, # x and y coordinates of the text
+                                label = "Adjusted HR (ref: non-DDLT, HR LDLT 1.00, 95% CI 1.00-1.00)", size = 6)
+ggsurv1
+```
+
+**OS overall DDLT vs LDLT CAN**
+```{r}
+CAN <- bound3 %>% filter(COUNTRY == "CAN")
+fit1 <- survfit(Surv(PSURV_years, PCENS) ~ LDLT, data = CAN)
+
+ggsurv1 <- ggsurvplot(
+           fit1,               
+           data = CAN,          
+           risk.table = TRUE,     
+           pval = TRUE,
+           pval.coord = c(0, 0.8),
+           pval.size = 6,
+           conf.int = F,         
+           xlim = c(0,5),
+           ylim = c(0.5, 1.00),
+           xlab = "Years from LT",
+           palette = "jama",
+           break.time.by = 1,  
+           title = "Canada",
+      # subtitle = "with 95% confidence intervals",
+               ggtheme = theme_test(base_size=28, base_family = "Helvetica"),
+         # risk.table.y.text.col = F,
+         fontsize=8,
+         risk.table.height = 0.25,
+        #  risk.table.y.text = T,
+        #  surv.median.line = "hv", 
+           legend.title= "",
+      tables.x.text = FALSE,
+          legend.labs =
+           c("Non-LDLT", "LDLT")
+        )
+ggsurv1
+
+ggsurv1$plot <- ggsurv1$plot+ 
+              ggplot2::annotate("text", 
+                                x = 2.5, y = 0.7, # x and y coordinates of the text
+                                label = "Adjusted HR (ref: non-DDLT, HR LDLT 0.82, 95% CI 0.43-1.60)", size = 6)
 ggsurv1
 ```
 
@@ -370,6 +546,7 @@ ggsurv1
 ```{r}
 bound4 <- bound2 %>% filter(COUNTRY == "US" | COUNTRY == "UK" | COUNTRY == "CAN")
 
+#overall
 cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
               bound4$CIT+
               bound4$RSEX+
@@ -386,11 +563,12 @@ cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
               bound4$HCC+
               bound4$PSC+
               bound4$ALD+
-              bound4$HCV,
+              bound4$HCV+
+              bound4$Centerpercentile,
         data=bound4)
 forest_model(cox1) 
 
-
+#HCC only
 cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~HCConly$COUNTRY+
               HCConly$CIT+
               HCConly$RSEX+
@@ -402,10 +580,12 @@ cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~HCConly$COUNTRY+
               HCConly$RAGE+
               HCConly$WAITLIST_TIME+
               HCConly$DSEX+
-              HCConly$TX_YR,
+              HCConly$TX_YR+
+              HCConly$Centerpercentile,
         data=HCConly)
 forest_model(cox1) 
 
+#nonhCC
 cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~nonHCC$COUNTRY+
               nonHCC$CIT+
               nonHCC$RSEX+
@@ -418,9 +598,70 @@ cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~nonHCC$COUNTRY+
               nonHCC$RAGE+
               nonHCC$WAITLIST_TIME+
               nonHCC$DSEX+
-              nonHCC$TX_YR,
+              nonHCC$TX_YR+
+              nonHCC$Centerpercentile,
         data=nonHCC)
 forest_model(cox1)
+
+#US only
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~US$LDLT+
+              US$CIT+
+              US$RSEX+
+              US$BMI+
+              US$DBMI+
+              US$RBILIRUBIN+
+              US$RINR+
+              US$RCREAT+
+              US$RREN_SUP+
+              US$DAGE+
+              US$RAGE+
+              US$TX_YR+
+              US$HCC+
+              US$PSC+
+              US$ALD+
+              US$HCV,
+        data=US)
+forest_model(cox1) 
+
+#UK only
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~UK$LDLT+
+              UK$CIT+
+              UK$RSEX+
+              UK$BMI+
+              #UK$DBMI+
+              UK$RBILIRUBIN+
+              UK$RINR+
+              UK$RCREAT+
+              UK$RREN_SUP+
+              UK$DAGE+
+              UK$RAGE+
+              UK$TX_YR+
+              UK$HCC+
+              UK$PSC+
+              UK$ALD+
+              UK$HCV,
+        data=UK)
+forest_model(cox1) 
+
+#Canada only
+cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~CAN$LDLT+
+              CAN$CIT+
+              CAN$RSEX+
+              CAN$BMI+
+              CAN$DBMI+
+              CAN$RBILIRUBIN+
+              CAN$RINR+
+              CAN$RCREAT+
+              CAN$RREN_SUP+
+              CAN$DAGE+
+              CAN$RAGE+
+              CAN$TX_YR+
+              CAN$HCC+
+              CAN$PSC+
+              CAN$ALD+
+              CAN$HCV,
+        data=CAN)
+forest_model(cox1) 
 
 #Landmark at 90 days
 cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
@@ -439,7 +680,8 @@ cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
               bound4$HCC+
               bound4$PSC+
               bound4$ALD+
-              bound4$HCV,
+              bound4$HCV+
+              bound4$Centerpercentile,
               subset = PSURV_years <= 0.2464066,
         data=bound4)
 forest_model(cox1) 
@@ -461,7 +703,8 @@ cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
               bound4$HCC+
               bound4$PSC+
               bound4$ALD+
-              bound4$HCV,
+              bound4$HCV+
+              bound4$Centerpercentile,
               subset = PSURV_years > 0.2464066 & PSURV_years <= 2,
         data=bound4)
 forest_model(cox1) 
@@ -483,7 +726,8 @@ cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
               bound4$HCC+
               bound4$PSC+
               bound4$ALD+
-              bound4$HCV,
+              bound4$HCV+
+              bound4$Centerpercentile,
               subset = PSURV_years > 2 & PSURV_years <= 5,
         data=bound4)
 forest_model(cox1) 
