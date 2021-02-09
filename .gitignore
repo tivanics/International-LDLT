@@ -1,6 +1,8 @@
 .DS_Store
+Analysis/.DS_Store
 *.docx
 *.pptx
 Datafile/merged.csv
 .Rproj.user
 *.Rproj
+.Rhistory
