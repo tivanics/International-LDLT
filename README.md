@@ -6,7 +6,9 @@ This is an analysis using a harmonized dataset of three national (UK, US, Canada
 2. Temporal trends of living donor liver transplant (LDLT) use.
 3. Post-transplant outcomes
 
-#Feb 7 to do
-- Recalculate MELD
-- Evaluate center contribution
-- Revise abstract according to changes
+#Feb 8 to do
+- Recalculate MELD - 
+- Evaluate center contribution - done
+- Revise abstract according to changes - done
+- Look at cluster analytic and random effect model methods
+- Look at DBMI and why some missing in UK
