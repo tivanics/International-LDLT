@@ -17,6 +17,8 @@ library(tidyverse)
 library(magrittr)
 library(scales)
 library(ggsci)
+library(plotly)
+library(hrbrthemes)
 options(scipen=999)
 ```
 
@@ -97,13 +99,23 @@ ggplot(test, aes(factor(TX_YR), y = countLDLT, group = COUNTRY,
 ```
 
 ```{r gabi_ggplot}
-library(plotly)
-library(hrbrthemes)
+# library(plotly)
+# library(hrbrthemes)
 # data preparation
 # same essentially as what you have above, just created my own LDLT_only dataframe
 # (my understanding of the data may need double checking from you, but
 # if the bound3 source countains all cases then I think this should be correct)
 
+
+bound3 <- readRDS(file = "./bound3forgraph.rds")
+
+# From Tommy's implementation above:
+#Here i create a count per year per country (how many transplants done per country per year)
+COUNTYEAR <- bound3 %>% 
+  group_by(TX_YR, COUNTRY) %>% 
+  mutate(countYEAR = n()) %>% 
+  ungroup()
+COUNTYEAR <- COUNTYEAR %>% select(TX_YR, COUNTRY, countYEAR)
 # Total transplants counts by year, by country, 2008-2018
 total_transplants_country_year <- unique(COUNTYEAR)
 
@@ -125,29 +137,56 @@ labeled_subset_total_transplants_country_year <- subset(total_transplants_countr
                                                         TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
 # ggplot object
 ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two data frames
-  geom_area(fill="antiquewhite2", alpha = 0.5, data = total_transplants_country_year, col = "antiquewhite3") +
-  geom_area(fill=rgb(0.2,0.1,0.5,0.2), alpha = 0.5, data = LDLT_country_year, col = "darkslateblue") +
+  geom_area(fill  ="antiquewhite2",
+            alpha = 0.5, 
+            data = total_transplants_country_year, 
+            col = "antiquewhite2",
+            mapping = aes(fill = "Total")) +
+  geom_area(fill = rgb(0.2,0.1,0.5,0.2), 
+            alpha = 0.5, 
+            data = LDLT_country_year, 
+            mapping = aes(fill = "LDLT"),
+            col = "darkslateblue") +
   facet_grid(COUNTRY~., scales="free_y") +
-  scale_x_continuous(limits = c(2008, 2018), breaks = c(2008, 2010, 2012, 2014, 2016, 2018))+
-  # scale_x_discrete(expand = expansion(mult = c(0, 0)), breaks=seq(2008, 2018, 10)) +
+  scale_x_continuous(limits = c(2008, 2018), 
+                     breaks = c(2008, 2010, 2012, 2014, 2016, 2018))+
   scale_y_continuous(expand = expansion(mult = c(0, 0))) +
   
+ 
   # label the proportion of LDLT done for that year; label only 
   # the years of the x-axis breaks (to save space, optional ofc)
   geom_text(data = labeled_subset_LDLT_country_year, 
              label = percent(labeled_subset_LDLT_country_year$countYEAR /
                                labeled_subset_total_transplants_country_year$countYEAR, 
                              accuracy = 0.1),
-            size = 4,
-            # angle = 10,
+            size = 3,
             nudge_y = 50,
             col = "darkslateblue",
             fontface = "bold") +
-    theme_ipsum(axis_title_size = 18) + 
-            xlab("Transplant year") +
-            ylab("Transplants performed")
+  xlab("\nYear of transplant") +
+  ylab("Number of transplants\n") +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 10, family = "serif"),
+        strip.text.y = element_text(angle = 0, 
+                                    size = 16,
+                                    face = "bold",
+                                    colour = "darkslateblue",
+                                    family = "serif"),
+        axis.text.x = element_text(face = "bold", size = 12, colour = "#515A5A"),
+        axis.title.x = element_text(hjust = 0.95, colour = "#424949"),
+        axis.title.y = element_text(angle = 90, hjust = 0.95, colour = "#424949"),
+        axis.text.y = element_text(colour = "#424949"), 
+        panel.spacing.y = unit(3, "lines"),
+        panel.grid.major = element_line(colour = "#F2F4F4"),
+        panel.grid.minor = element_blank()) 
   
+
+ 
 ggp
+
+# ggplotly(ggp)
+# flush_ticks(ggp)
+  
 
 # Saving with high res, importing the font that was used in the ipsum theme
 # extrafont::font_import() # this command takes 1-2min (maybe move to start of script)
