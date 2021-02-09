@@ -144,11 +144,13 @@ ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two
             data = total_transplants_country_year, 
             col = "antiquewhite2",
             mapping = aes(fill = "Total")) +
+
   geom_area(fill = "#b491c8", 
             alpha = 0.5, 
             data = LDLT_country_year, 
             mapping = aes(fill = "LDLT"),
             col = "#b491c8") +
+
   facet_grid(COUNTRY~., scales="free_y") +
   scale_x_continuous(limits = c(2008, 2018), 
                      breaks = c(2008, 2010, 2012, 2014, 2016, 2018))+
@@ -172,6 +174,7 @@ ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two
   xlab("\nYear of transplant") +
   ylab("Number of transplants\n") +
   theme_minimal() +
+
   theme(axis.title = element_text(size = 10, family = "serif"),
         strip.text.y = element_text(angle = 0, 
                                     size = 16,
