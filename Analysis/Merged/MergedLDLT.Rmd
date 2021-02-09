@@ -156,6 +156,7 @@ bound2 <- bound2 %>% mutate(PCENS_10year =
 
 ```{r}
 bound3 <- bound2
+bound3 <- bound3 %>% filter(!(DTYPE == "LDLT" & GRAFT_TYPE == "Whole"))
 bound2 <- bound2 %>% filter(DTYPE == "LDLT" & GRAFT_TYPE == "Segmental")
 ```
 
@@ -217,6 +218,17 @@ tab1 <- tableby(COUNTRY ~
                 numeric.stats=c("medianq1q3"), numeric.test="kwt", cat.test="chisq")
 summary(tab1, title='Donor characteristics', pfootnote=TRUE, digits = 2)
 ```
+
+```{r}
+bound3 <- bound3 %>% mutate(UHN = factor(UHN, labels = c("Not UHN", "UHN")))
+
+tab1 <- tableby(UHN ~
+              DTYPE,
+              data=bound3, subset = COUNTRY == "CAN", test=TRUE, total=TRUE, 
+                numeric.stats=c("medianq1q3"), numeric.test="kwt", cat.test="chisq")
+summary(tab1, title='', pfootnote=TRUE, digits = 2)
+```
+
 
 ```{r}
 tab1 <- tableby(COUNTRY ~ 
@@ -441,7 +453,7 @@ ggsurv1 <- ggsurvplot(
            pval.size = 6,
            conf.int = F,         
            xlim = c(0,5),
-           ylim = c(0.5,¬Òl 1.00),
+           ylim = c(0.5, 1.00),
            xlab = "Years from LT",
            palette = "jama",
            break.time.by = 1,  
@@ -456,13 +468,13 @@ ggsurv1 <- ggsurvplot(
            legend.title= "",
       tables.x.text = FALSE,
           legend.labs =
-           c("Non-LDLT", "LDLT")
+           c("DDLT", "LDLT")
         )
 ggsurv1
 
 ggsurv1$plot <- ggsurv1$plot+ 
               ggplot2::annotate("text", 
-                                x = 2.5, y = 0.7, # x and y coordinates of the text
+                                x = 2.5, y = 0.5, # x and y coordinates of the text
                                 label = "Adjusted HR (ref: non-DDLT, HR LDLT 1.02, 95% CI 0.91-1.14)", size = 6)
 ggsurv1
 ```
@@ -496,14 +508,14 @@ ggsurv1 <- ggsurvplot(
            legend.title= "",
       tables.x.text = FALSE,
           legend.labs =
-           c("Non-LDLT", "LDLT")
+           c("DDLT", "LDLT")
         )
 ggsurv1
 
 ggsurv1$plot <- ggsurv1$plot+ 
               ggplot2::annotate("text", 
-                                x = 2.5, y = 0.7, # x and y coordinates of the text
-                                label = "Adjusted HR (ref: non-DDLT, HR LDLT 1.00, 95% CI 1.00-1.00)", size = 6)
+                                x = 2.5, y = 0.5, # x and y coordinates of the text
+                                label = "Adjusted HR (ref: non-DDLT, HR LDLT 1.22, 95% CI 0.66-2.26)", size = 6)
 ggsurv1
 ```
 
@@ -536,14 +548,14 @@ ggsurv1 <- ggsurvplot(
            legend.title= "",
       tables.x.text = FALSE,
           legend.labs =
-           c("Non-LDLT", "LDLT")
+           c("DDLT", "LDLT")
         )
 ggsurv1
 
 ggsurv1$plot <- ggsurv1$plot+ 
               ggplot2::annotate("text", 
-                                x = 2.5, y = 0.7, # x and y coordinates of the text
-                                label = "Adjusted HR (ref: non-DDLT, HR LDLT 0.82, 95% CI 0.43-1.60)", size = 6)
+                                x = 2.5, y = 0.5, # x and y coordinates of the text
+                                label = "Adjusted HR (ref: non-DDLT, HR LDLT 0.83, 95% CI 0.43-1.61)", size = 6)
 ggsurv1
 ```
 
