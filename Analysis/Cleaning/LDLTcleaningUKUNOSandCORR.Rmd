@@ -234,9 +234,10 @@ unosdata <- unosdata %>% rename(
 )
 
 #Transplant unit
-unosdata <- unosdata %>% rename(
-  TRANSPLANT_UNIT = CTR_CODE 
+unosdata <- unosdata %>% mutate(
+  TRANSPLANT_UNIT = factor(CTR_CODE)
 )
+
 
 #Recipient MELD score
 unosdata <- unosdata %>% rename(
@@ -2038,7 +2039,7 @@ ukfull <- ukfull %>% mutate(
   )
 )
 
-ukfull <- ukfull %>% rename(TRANSPLANT_UNIT = transplant_unit)
+ukfull <- ukfull %>% mutate(TRANSPLANT_UNIT = factor(transplant_unit))
 
 ukformerge <- ukfull %>% select(REGID, TX_YR, RAGE, GSURV, GCENS, PSURV, PCENS, LC, DAGE, DTYPE, DONCOD, DBMI, DSEX, DCMV, BLD_GP_MATCH, GRAFT_TYPE, CIT, RSEX, RETHNIC, BMI, WAITLIST_TIME, TRANSPLANT_UNIT, MELD, RREN_SUP, RVENT, RAB_SURGERY, RLIFE, RASCITES, RENCEPH, RBG, RANTI_HCV, RALBUMIN, RINR, RBILIRUBIN, RCREAT, COUNTRY, HCC_combined, UKT_PLDGRP, NASH, COD_cardiovascular, COD_malignancy, COD_infection, COD_liverrelated, COD_other, HCC, HCV, PSC, HBV, PBC, ALD, AID, MET, OTH)
 ```
@@ -2051,6 +2052,8 @@ corrdata <- read_sav("/Users/Ivanics/Desktop/corr_new.sav")
 
 **Recoding and renaming**
 ```{r}
+corrdata <- corrdata %>% mutate(TRANSPLANT_UNIT = factor(UHN))
+
 corrdata <- corrdata %>% 
   rename(REGID=RECIPIENT_ID)
 
@@ -2737,12 +2740,13 @@ corrdata <- corrdata %>% mutate(COD_other = factor(COD_other, labels = c("Other 
 
 ```{r}
 #CORR
-corrdataformerge <- corrdata %>% select(REGID, TX_YR, RAGE, GSURV, GCENS, PSURV, PCENS, DAGE, DTYPE, DONCOD, DBMI, DCMV, DSEX, GRAFT_TYPE, CIT, RSEX, RETHNIC, BMI, WAITLIST_TIME, MELD, RREN_SUP, RBG, RANTI_HCV, RINR, RBILIRUBIN, RCREAT, COUNTRY, HCC_combined, UKT_PLDGRP, NASH, COD_cardiovascular, COD_malignancy, COD_infection, COD_liverrelated, COD_other, UHN, HCC, HCV, PSC, HBV, PBC, ALD, AID, MET, OTH)
+corrdataformerge <- corrdata %>% select(REGID, TX_YR, RAGE, GSURV, GCENS, PSURV, PCENS, DAGE, DTYPE, DONCOD, DBMI, DCMV, DSEX, GRAFT_TYPE, CIT, RSEX, RETHNIC, BMI, WAITLIST_TIME, MELD, RREN_SUP, RBG, RANTI_HCV, RINR, RBILIRUBIN, RCREAT, COUNTRY, HCC_combined, UKT_PLDGRP, NASH, COD_cardiovascular, COD_malignancy, COD_infection, COD_liverrelated, COD_other, UHN, HCC, HCV, PSC, HBV, PBC, ALD, AID, MET, OTH, TRANSPLANT_UNIT)
 ```
 
 ```{r}
 #UNOS
 unosformerge <- unosdata %>% select(REGID, TX_YR, RAGE, GSURV, PSURV, PCENS, GCENS, LC, DAGE, DTYPE, DONCOD, DBMI, DCMV, DSEX, BLD_GP_MATCH, GRAFT_TYPE, CIT, RSEX, RETHNIC, BMI, WAITLIST_TIME, TRANSPLANT_UNIT, MELD, RREN_SUP, RVENT, RAB_SURGERY, RLIFE, RASCITES, RENCEPH, RBG, RANTI_HCV, RALBUMIN, RINR, RBILIRUBIN, RCREAT, COUNTRY, HCC_combined, UKT_PLDGRP, NASH, COD_cardiovascular, COD_malignancy, COD_infection, COD_liverrelated, COD_other, HCC, HCV, PSC, HBV, PBC, ALD, AID, MET, OTH)
+
 ```
 
 ```{r}
@@ -2750,5 +2754,7 @@ bound3 <- bind_rows(unosformerge, ukformerge, corrdataformerge)
 ```
 **Cleaning up bound file**
 ```{r}
-write_csv(bound3, path = "/Users/Ivanics/Desktop/Research/104. UK vs. US. vs. CAN LDLT/Datafile/merged.csv")
+write_csv(bound3, path = "/Users/Ivanics/Desktop/GitHub/International-LDLT/Datafile/merged.csv")
 ```
+
+

@@ -21,7 +21,7 @@ options(scipen=999)
 ```
 
 ```{r}
-bound3 <- readRDS(file = "/Users/Ivanics/Desktop/Research/104. UK vs. US. vs. CAN LDLT/Analysis/Forfigure/bound3forgraph.rds")
+bound3 <- readRDS(file = "/Users/Ivanics/Desktop/GitHub/International-LDLT/Analysis/Forfigure/bound3forgraph.rds")
 
 ```
 
@@ -127,10 +127,10 @@ labeled_subset_total_transplants_country_year <- subset(total_transplants_countr
 ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two data frames
   geom_area(fill="antiquewhite2", alpha = 0.5, data = total_transplants_country_year, col = "antiquewhite3") +
   geom_area(fill=rgb(0.2,0.1,0.5,0.2), alpha = 0.5, data = LDLT_country_year, col = "darkslateblue") +
-  facet_grid(.~COUNTRY, scales="free_y") +
+  facet_grid(COUNTRY~., scales="free_y") +
   scale_x_continuous(limits = c(2008, 2018), breaks = c(2008, 2010, 2012, 2014, 2016, 2018))+
   # scale_x_discrete(expand = expansion(mult = c(0, 0)), breaks=seq(2008, 2018, 10)) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 6660)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0))) +
   
   # label the proportion of LDLT done for that year; label only 
   # the years of the x-axis breaks (to save space, optional ofc)
@@ -147,9 +147,6 @@ ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two
             xlab("Transplant year") +
             ylab("Transplants performed")
   
-
-
-
 ggp
 
 # Saving with high res, importing the font that was used in the ipsum theme
