@@ -98,7 +98,7 @@ ggplot(test, aes(factor(TX_YR), y = countLDLT, group = COUNTRY,
   scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 6660))
 ```
 
-```{r gabi_ggplot}
+```{r gabi_dataprep}
 # library(plotly)
 # library(hrbrthemes)
 # data preparation
@@ -135,18 +135,20 @@ labeled_subset_LDLT_country_year <- subset(LDLT_country_year,
                                            TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
 labeled_subset_total_transplants_country_year <- subset(total_transplants_country_year, 
                                                         TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
-# ggplot object
+```
+``` {r gabi_ggplot_faceted}
+# ggplot object - faceted
 ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two data frames
   geom_area(fill  ="antiquewhite2",
             alpha = 0.5, 
             data = total_transplants_country_year, 
             col = "antiquewhite2",
             mapping = aes(fill = "Total")) +
-  geom_area(fill = rgb(0.2,0.1,0.5,0.2), 
+  geom_area(fill = "#b491c8", 
             alpha = 0.5, 
             data = LDLT_country_year, 
             mapping = aes(fill = "LDLT"),
-            col = "darkslateblue") +
+            col = "#b491c8") +
   facet_grid(COUNTRY~., scales="free_y") +
   scale_x_continuous(limits = c(2008, 2018), 
                      breaks = c(2008, 2010, 2012, 2014, 2016, 2018))+
@@ -159,9 +161,13 @@ ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two
              label = percent(labeled_subset_LDLT_country_year$countYEAR /
                                labeled_subset_total_transplants_country_year$countYEAR, 
                              accuracy = 0.1),
-            size = 3,
-            nudge_y = 50,
-            col = "darkslateblue",
+            size = 2,
+            # position = position_dodge(0.9),
+            # label.padding = unit(0.25, "lines"),
+            vjust = 0,
+            # lineheight = 5,
+            # nudge_y = 30,
+            col = "#28193D",
             fontface = "bold") +
   xlab("\nYear of transplant") +
   ylab("Number of transplants\n") +
@@ -170,12 +176,12 @@ ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two
         strip.text.y = element_text(angle = 0, 
                                     size = 16,
                                     face = "bold",
-                                    colour = "darkslateblue",
+                                    colour = "#28193D",
                                     family = "serif"),
-        axis.text.x = element_text(face = "bold", size = 12, colour = "#515A5A"),
+        axis.text.x = element_text(size = 10, colour = "#424949"),
         axis.title.x = element_text(hjust = 0.95, colour = "#424949"),
         axis.title.y = element_text(angle = 90, hjust = 0.95, colour = "#424949"),
-        axis.text.y = element_text(colour = "#424949"), 
+        axis.text.y = element_text(size = 6, colour = "#424949"), 
         panel.spacing.y = unit(3, "lines"),
         panel.grid.major = element_line(colour = "#F2F4F4"),
         panel.grid.minor = element_blank()) 
@@ -190,12 +196,90 @@ ggp
 
 # Saving with high res, importing the font that was used in the ipsum theme
 # extrafont::font_import() # this command takes 1-2min (maybe move to start of script)
-extrafont::loadfonts()
-
-# plot is scaled to 200% here but play with the size to see what works in the manuscript
+# extrafont::loadfonts()
+# 
+# # plot is scaled to 200% here but play with the size to see what works in the manuscript
 ggsave(filename = "./proportional_transplants_by_year_country.pdf", device = "pdf", plot = ggp, scale = 2, dpi = "retina")
 
 # PS: if you hate the colours: https://urldefense.com/v3/__https://www.r-graph-gallery.com/42-colors-names.html__;!!CjcC7IQ!aJpQ4276B-YgypvS1PzrDkYoWy0setgdTJxjOlgpteCdl8fBPhjmQ2wQKL72KWFiqIw$ [r-graph-gallery[.]com]
+```
 
+
+``` {r gabi_ggplot_plotgrid}
+#######
+# SERIOUSLY CANNOT DISCOURAGE THIS APPROACH ENOUGH 
+#######
+#US DATA
+# US_total_transplants_country_year <- total_transplants_country_year[total_transplants_country_year$COUNTRY == "US",]
+# US_LDLT_country_year <- LDLT_country_year[LDLT_country_year$COUNTRY == "US",]
+# US_labeled_subset_LDLT_country_year <- subset(US_LDLT_country_year,
+#                                            TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
+# US_labeled_subset_total_transplants_country_year <- subset(US_total_transplants_country_year, 
+#                                                         TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
+# #CAN DATA
+# CAN_total_transplants_country_year <- total_transplants_country_year[total_transplants_country_year$COUNTRY == "CAN",]
+# CAN_LDLT_country_year <- LDLT_country_year[LDLT_country_year$COUNTRY == "CAN",]
+# CAN_labeled_subset_LDLT_country_year <- subset(CAN_LDLT_country_year,
+#                                            TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
+# CAN_labeled_subset_total_transplants_country_year <- subset(CAN_total_transplants_country_year, 
+#                                                         TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
+# #UK DATA
+# UK_total_transplants_country_year <- total_transplants_country_year[total_transplants_country_year$COUNTRY == "UK",]
+# UK_LDLT_country_year <- LDLT_country_year[LDLT_country_year$COUNTRY == "UK",]
+# UK_labeled_subset_LDLT_country_year <- subset(UK_LDLT_country_year,
+#                                            TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
+# UK_labeled_subset_total_transplants_country_year <- subset(UK_total_transplants_country_year, 
+#                                                         TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
+# 
+# p1 <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two data frames
+#   geom_area(fill  ="antiquewhite2",
+#             alpha = 0.5, 
+#             data = US_total_transplants_country_year, 
+#             col = "antiquewhite2",
+#             mapping = aes(fill = "Total")) +
+#   geom_area(fill = rgb(0.2,0.1,0.5,0.2), 
+#             alpha = 0.5, 
+#             data = US_LDLT_country_year, 
+#             mapping = aes(fill = "LDLT"),
+#             col = "darkslateblue") +
+#   facet_grid(COUNTRY~., scales="free_y") +
+#   scale_x_continuous(limits = c(2008, 2018), 
+#                      breaks = c(2008, 2010, 2012, 2014, 2016, 2018))+
+#   scale_y_continuous(expand = expansion(mult = c(0, 0))) +
+#   
+#  
+#   # label the proportion of LDLT done for that year; label only 
+#   # the years of the x-axis breaks (to save space, optional ofc)
+#   geom_text(data = US_labeled_subset_LDLT_country_year, 
+#              label = percent(US_labeled_subset_LDLT_country_year$countYEAR /
+#                                US_labeled_subset_total_transplants_country_year$countYEAR, 
+#                              accuracy = 0.1),
+#             size = 2,
+#             # position = position_dodge(0.9),
+#             # label.padding = unit(0.25, "lines"),
+#             # vjust = "center",
+#             # lineheight = 5,
+#             nudge_y = 100,
+#             col = "darkslateblue",
+#             fontface = "bold") +
+#   xlab("\nYear of transplant") +
+#   ylab("Number of transplants\n") +
+#   theme_minimal() +
+#   theme(axis.title = element_text(size = 10, family = "serif"),
+#         strip.text.y = element_text(angle = 0, 
+#                                     size = 16,
+#                                     face = "bold",
+#                                     colour = "darkslateblue",
+#                                     family = "serif"),
+#         axis.text.x = element_text(face = "bold", size = 12, colour = "#515A5A"),
+#         axis.title.x = element_text(hjust = 0.95, colour = "#424949"),
+#         axis.title.y = element_text(angle = 90, hjust = 0.95, colour = "#424949"),
+#         axis.text.y = element_text(colour = "#424949"), 
+#         panel.spacing.y = unit(3, "lines"),
+#         panel.grid.major = element_line(colour = "#F2F4F4"),
+#         panel.grid.minor = element_blank()) 
+# 
+# 
+# p1
 
 ```
