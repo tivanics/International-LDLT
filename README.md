@@ -7,7 +7,7 @@ This is an analysis using a harmonized dataset of three national (UK, US, Canada
 3. Post-transplant outcomes
 
 #Feb 8 to do
-- Recalculate MELD - 
+- Recalculate MELD - done
 - Evaluate center contribution - done
 - Revise abstract according to changes - done
 - Look at cluster analytic and random effect model methods
