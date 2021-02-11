@@ -783,7 +783,7 @@ cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
 forest_model(cox1) 
 ```
 
-```{r CHECK THIS}
+```{r eval=FALSE}
 library(scales)
 #SEnd Gabi RDS file. 
 Trendsovertime <- bound4 %>% select(TX_YR, COUNTRY) 
@@ -810,7 +810,7 @@ ggplot(Trendsovertime, aes(factor(TX_YR), y = count, group = COUNTRY,
 
 ```
 
-```{r CHECK THIS}
+```{r eval=FALSE}
 COUNTYEAR <- bound3 %>% group_by(TX_YR, COUNTRY) %>% mutate(countYEAR = n()) %>% ungroup()
 COUNTYEAR <- COUNTYEAR %>% select(TX_YR, COUNTRY, countYEAR)
 
@@ -845,7 +845,7 @@ ggplot(test, aes(factor(TX_YR), y = countLDLT, group = COUNTRY,
 ```  
 
 
-```{r}
+```{r eval=FALSE}
 #Cox-stuart trend test Canada
 library(trend)
 Canada <- Trendsovertime %>% filter(COUNTRY == "CAN") %>% select(count, TX_YR)
@@ -885,7 +885,7 @@ x <- c(0.0341, 0.0324, 0.0419, 0.0366, 0.0381, 0.0406, 0.0418, 0.0491, 0.0451,0.
 cs.test(x)
 ```
 
-```{r}
+```{r eval=FALSE}
 Trendsovertimedonortype <- bound3 %>% select(TX_YR, DTYPE, COUNTRY) 
 
 Trendsovertimedonortype <- Trendsovertimedonortype %>% group_by(TX_YR, COUNTRY, DTYPE) %>% mutate(count = n()) %>% ungroup()
