@@ -5,6 +5,7 @@ output:
   pdf_document: default
   html_document: default
 ---
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 12, results="asis")
 ```
@@ -33,10 +34,10 @@ options(scipen=999)
 ```
 
 **Read in data**
+
 ```{r}
 bound2 <- read_csv("/Users/Ivanics/Desktop/GitHub/International-LDLT/Datafile/merged.csv", guess_max = 300000)
 ```
-
 
 ```{r}
 bound2 <- bound2 %>% filter(COUNTRY == "US" | COUNTRY == "UK" | COUNTRY == "CAN")
@@ -75,8 +76,8 @@ bound2 <- bound2 %>% mutate(LDLT = case_when(
 bound2 <- bound2 %>% mutate(MELD_calculated = 3.78*log(RBILIRUBIN) + 11.2*log(RINR) + 9.57*log(RCREAT) + 6.43)
 ```
 
-
 **Recoding graft survival**
+
 ```{r}
 bound2 <- bound2 %>% mutate(
   GCENSnew = case_when(
@@ -94,6 +95,7 @@ bound2 <- bound2 %>% mutate(
 ```
 
 **Recoding patient survival**
+
 ```{r}
 #1year PSURV
 bound2 <- bound2 %>% mutate(PSURV_1year =
@@ -160,7 +162,6 @@ bound3 <- bound3 %>% filter(!(DTYPE == "LDLT" & GRAFT_TYPE == "Whole"))
 bound2 <- bound2 %>% filter(DTYPE == "LDLT" & GRAFT_TYPE == "Segmental")
 ```
 
-
 ```{r}
 #creatining a variable for center count (number of appearances of a center in LT pts)
 bound2 <- bound2 %>% 
@@ -181,7 +182,8 @@ bound2 <- bound2 %>%
   mutate(Centerpercentile = factor(Centerpercentile, labels = c("<25%ile", "25-75%ile", ">75%ile")))
 ```
 
-**Crosstabulating** 
+**Crosstabulating**
+
 ```{r}
 ftable(xtabs(cbind(PCENS,GCENS)~ COUNTRY, data=bound2))
 ftable(xtabs(cbind(PCENS,GCENSnew)~ COUNTRY, data=bound2))
@@ -202,7 +204,6 @@ tab1 <- tableby(COUNTRY ~
                 numeric.stats=c("medianq1q3"), numeric.test="kwt", cat.test="chisq")
 summary(tab1, title='Graft types 2018', pfootnote=TRUE, digits = 2)
 ```
-
 
 ```{r}
 tab1 <- tableby(COUNTRY ~
@@ -228,7 +229,6 @@ tab1 <- tableby(UHN ~
                 numeric.stats=c("medianq1q3"), numeric.test="kwt", cat.test="chisq")
 summary(tab1, title='', pfootnote=TRUE, digits = 2)
 ```
-
 
 ```{r}
 tab1 <- tableby(COUNTRY ~ 
@@ -266,6 +266,7 @@ summary(tab1, title='Recipient characteristics', pfootnote=TRUE, digits = 2)
 ```
 
 **Summaries for survival**
+
 ```{r}
 #Overall
 summary(tableby(COUNTRY ~ Surv(PSURV_years, PCENS), data=bound2, times=1:10, surv.stats=c("NeventsSurv", "NriskSurv")))
@@ -294,7 +295,9 @@ symnum(fit4$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
    symbols = c("****", "***", "**", "*", "+", " "),
    abbr.colnames = FALSE, na = "")
 ```
+
 **OS overall**
+
 ```{r}
 levels(bound2$COUNTRY)
 fit1 <- survfit(Surv(PSURV_years, PCENS) ~ COUNTRY, data = bound2)
@@ -331,6 +334,7 @@ ggsurv1
 ```
 
 **OS overall by percentile**
+
 ```{r}
 levels(bound2$COUNTRY)
 fit1 <- survfit(Surv(PSURV_years, PCENS) ~ Centerpercentile, data = bound2)
@@ -361,6 +365,7 @@ ggsurv1
 ```
 
 **OS overall HCC**
+
 ```{r}
 HCConly <- bound2 %>% filter(HCC == "1")
 fit1 <- survfit(Surv(PSURV_years, PCENS) ~ COUNTRY, data = HCConly)
@@ -400,6 +405,7 @@ ggsurv1
 ```
 
 **OS overall non-HCC**
+
 ```{r}
 nonHCC <- bound2 %>% filter(HCC == "0")
 fit1 <- survfit(Surv(PSURV_years, PCENS) ~ COUNTRY, data = nonHCC)
@@ -440,6 +446,7 @@ ggsurv1
 ```
 
 **OS overall DDLT vs LDLT US**
+
 ```{r}
 US <- bound3 %>% filter(COUNTRY == "US")
 fit1 <- survfit(Surv(PSURV_years, PCENS) ~ LDLT, data = US)
@@ -480,6 +487,7 @@ ggsurv1
 ```
 
 **OS overall DDLT vs LDLT UK**
+
 ```{r}
 UK <- bound3 %>% filter(COUNTRY == "UK")
 fit1 <- survfit(Surv(PSURV_years, PCENS) ~ LDLT, data = UK)
@@ -520,6 +528,7 @@ ggsurv1
 ```
 
 **OS overall DDLT vs LDLT CAN**
+
 ```{r}
 CAN <- bound3 %>% filter(COUNTRY == "CAN")
 fit1 <- survfit(Surv(PSURV_years, PCENS) ~ LDLT, data = CAN)
@@ -559,8 +568,7 @@ ggsurv1$plot <- ggsurv1$plot+
 ggsurv1
 ```
 
-**US vs. UK vs. CAN**
-**Forest model patient survival**
+**US vs. UK vs. CAN** **Forest model patient survival**
 ```{r}
 bound4 <- bound2 %>% filter(COUNTRY == "US" | COUNTRY == "UK" | COUNTRY == "CAN")
 
@@ -585,6 +593,34 @@ cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
               bound4$Centerpercentile,
         data=bound4)
 forest_model(cox1) 
+
+#Random effects
+#https://stats.idre.ucla.edu/r/dae/mixed-effects-cox-regression/
+
+library("coxme")
+#bound4 <- bound2 %>% filter(COUNTRY == "US" | COUNTRY == "UK") %>% droplevels()
+
+cox2 <- coxme(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
+              bound4$CIT+
+              bound4$RSEX+
+              bound4$BMI+
+              bound4$RBILIRUBIN+
+              bound4$RINR+
+              bound4$RCREAT+
+              bound4$RREN_SUP+
+              bound4$DAGE+
+              bound4$RAGE+
+              bound4$WAITLIST_TIME+
+              bound4$DSEX+
+              bound4$TX_YR+
+              bound4$HCC+
+              bound4$PSC+
+              bound4$ALD+
+              bound4$HCV+
+               (1|bound4$TRANSPLANT_UNIT),
+        data=bound4)
+cox2
+anova(cox1, cox2)
 
 #HCC only
 cox1 <- coxph(formula= Surv(PSURV_years,PCENS)~HCConly$COUNTRY+
@@ -842,8 +878,7 @@ ggplot(test, aes(factor(TX_YR), y = countLDLT, group = COUNTRY,
   scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 6660))
 
 #saveRDS(bound3, file = "/Users/Ivanics/Desktop/Research/104. UK vs. US. vs. CAN LDLT/Analysis/bound3forgraph.rds")
-```  
-
+```
 
 ```{r eval=FALSE}
 #Cox-stuart trend test Canada
@@ -925,6 +960,7 @@ ggplot(Trendsovertimedonortype, aes(factor(Year), y = Percentage*100, group = Co
 ```
 
 **Multiple imputations**
+
 ```{r eval = FALSE}
 library(mice)
 
@@ -1044,6 +1080,3 @@ coximpute <- with(init1, coxph(Surv(PSURV,PCENS)~ COUNTRY+
               TX_YR)))
 summary(pool(coximpute), conf.int = T, exponentiate = T)
 ```
-
-
-
