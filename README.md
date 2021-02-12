@@ -18,6 +18,7 @@ This is an analysis using a harmonized dataset of three national (UK, US, Canada
 
 ## Feb 12
 - Look at cluster analytic and random effect model methods - **done**
+- Draft introduction section - *to do*
 - Look at DBMI and why some missing in UK - *to do*
 - Look at center contribution further - *to do*
 - Multiple imputation and pool coxph - *to do*
