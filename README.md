@@ -12,10 +12,12 @@ This is an analysis using a harmonized dataset of three national (UK, US, Canada
 - Revise abstract according to changes - **done**
 - Submit abstract to AHPBA - **done**
 - Look at Canadian center contribution - **done**
-- Look at cluster analytic and random effect model methods - *to do*
 - Look at DBMI and why some missing in UK - *to do*
 
 ## Feb 10
 - Outline manuscript, create tables, figures - **done**
 - Look at center contribution further - *to do*
 - Multiple imputation and pool coxph - *to do*
+
+## Feb 12
+- - Look at cluster analytic and random effect model methods - **done**
