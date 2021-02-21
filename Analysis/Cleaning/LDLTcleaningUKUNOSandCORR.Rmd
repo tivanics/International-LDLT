@@ -187,7 +187,6 @@ unosdata <- unosdata %>% mutate(
   DCMV = case_when(
     unosdata$CMV_DON == "P" ~ 1,
     unosdata$CMV_DON == "N" ~ 0,
-    unosdata$CMV_DON == "ND" ~ 0,
     TRUE ~ NA_real_)) 
 
 unosdata <- unosdata %>% mutate(DCMV = 
@@ -300,7 +299,7 @@ unosdata <- unosdata %>% mutate(
 unosdata <- unosdata %>% mutate(
   RENCEPH = case_when(
     ENCEPH_TX == 1 ~ 0,
-    ENCEPH_TX == 2 | ASCITES_TX == 3 ~ 1,
+    ENCEPH_TX == 2 | ENCEPH_TX == 3 ~ 1,
     ENCEPH_TX == 4 ~ 0
   )
 ) %>%
@@ -324,7 +323,7 @@ unosdata <- unosdata %>% mutate(
 #Recipient HCV status
 unosdata$RANTI_HCV <- recode(unosdata$HCV_SEROSTATUS,
                              "N" ~ 0,
-                             "ND" ~ 0,
+                             "ND" ~ NA,
                              "P" ~ 1,
                              "U" ~ NA,
                              TRUE ~ NA)
