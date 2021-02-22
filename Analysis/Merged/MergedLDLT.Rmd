@@ -619,6 +619,7 @@ cox2 <- coxme(formula= Surv(PSURV_years,PCENS)~bound4$COUNTRY+
               bound4$HCV+
                (1|bound4$TRANSPLANT_UNIT),
         data=bound4)
+cox1
 cox2
 anova(cox1, cox2)
 
