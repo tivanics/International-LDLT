@@ -22,8 +22,13 @@ This is an analysis using a harmonized dataset of three national (UK, US, Canada
 ## Feb 13
 - Perform literature review
   - Get papers - **done**
-  - Write summary - *to do*
-- Draft introduction section - *to do*
+
+## June 29
+- Write summary of literature - **done**
+- Draft introduction section - **done**
+
+## June 30
+- Draft discussion section *to do*
 - Look at DBMI and why some missing in UK - *to do*
 - Look at center contribution further - *to do*
 - Multiple imputation and pool coxph - *to do*
