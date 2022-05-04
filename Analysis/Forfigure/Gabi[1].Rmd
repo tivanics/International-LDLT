@@ -204,11 +204,15 @@ ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two
   
   xlab("\nYear of transplant") +
   ylab("Number of transplants\n") +
+ 
+  
+  scale_color_manual("Legend Title", 
+                     limits=c("Total transplants performed", "LDLT performed"), 
+                     values = c("antiquewhite2","#28193D")) +
   theme_minimal() +
-
   theme(axis.title = element_text(size = 14, family = "serif"),
         strip.text.y = element_text(angle = 0, 
-                                    size = 20,
+                                    size = 18,
                                     face = "bold",
                                     colour = "#28193D",
                                     family = "serif"),
