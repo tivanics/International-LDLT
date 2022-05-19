@@ -23,7 +23,8 @@ options(scipen=999)
 ```
 
 ```{r}
-bound3 <- readRDS(file = "/Users/Ivanics/Desktop/GitHub/International-LDLT/Analysis/Forfigure/bound3forgraph.rds")
+# bound3 <- readRDS(file = "/Users/Ivanics/Desktop/GitHub/International-LDLT/Analysis/Forfigure/bound3forgraph.rds")
+bound3 <- readRDS(file = "~/Documents/UofT/SickKids/International-LDLT/Analysis/Forfigure/bound3forgraph.rds")
 
 ```
 
@@ -99,12 +100,12 @@ ggplot(test, aes(factor(TX_YR), y = countLDLT, group = COUNTRY,
 ```
 
 ```{r gabi_dataprep}
-# library(plotly)
-# library(hrbrthemes)
+library(plotly)
+library(hrbrthemes)
 # data preparation
 # same essentially as what you have above, just created my own LDLT_only dataframe
 # (my understanding of the data may need double checking from you, but
-# if the bound3 source countains all cases then I think this should be correct)
+# if the bound3 source contains all cases then I think this should be correct)
 
 
 bound3 <- readRDS(file = "./bound3forgraph.rds")
@@ -243,7 +244,11 @@ ggsave(filename = "./proportional_transplants_by_year_country.pdf", device = "pd
 
 # PS: if you hate the colours: https://urldefense.com/v3/__https://www.r-graph-gallery.com/42-colors-names.html__;!!CjcC7IQ!aJpQ4276B-YgypvS1PzrDkYoWy0setgdTJxjOlgpteCdl8fBPhjmQ2wQKL72KWFiqIw$ [r-graph-gallery[.]com]
 ```
+```{r gabi_ggplot_v2_resubmission}
 
+# Facetting into 3 rows and 2 columns, by country and transplant type. Each transplant type has one scale and colour (consistent across translant)
+# Each row has 
+```
 
 ``` {r gabi_ggplot_plotgrid}
 #######

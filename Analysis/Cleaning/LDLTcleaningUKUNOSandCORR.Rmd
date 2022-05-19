@@ -151,7 +151,7 @@ unosdata <- unosdata %>% rename(DBMI = BMI_DON_CALC)
 
 #Donor sex
 unosdata$DSEX <- 
-  recode(unosdata$GENDER,
+  recode(unosdata$GENDER_DON,
                                c("F"~0,
                                  "M"~1
                                  ))
@@ -187,7 +187,6 @@ unosdata <- unosdata %>% mutate(
   DCMV = case_when(
     unosdata$CMV_DON == "P" ~ 1,
     unosdata$CMV_DON == "N" ~ 0,
-    unosdata$CMV_DON == "ND" ~ 0,
     TRUE ~ NA_real_)) 
 
 unosdata <- unosdata %>% mutate(DCMV = 
@@ -300,7 +299,7 @@ unosdata <- unosdata %>% mutate(
 unosdata <- unosdata %>% mutate(
   RENCEPH = case_when(
     ENCEPH_TX == 1 ~ 0,
-    ENCEPH_TX == 2 | ASCITES_TX == 3 ~ 1,
+    ENCEPH_TX == 2 | ENCEPH_TX == 3 ~ 1,
     ENCEPH_TX == 4 ~ 0
   )
 ) %>%
@@ -324,7 +323,7 @@ unosdata <- unosdata %>% mutate(
 #Recipient HCV status
 unosdata$RANTI_HCV <- recode(unosdata$HCV_SEROSTATUS,
                              "N" ~ 0,
-                             "ND" ~ 0,
+                             "ND" ~ NA,
                              "P" ~ 1,
                              "U" ~ NA,
                              TRUE ~ NA)
@@ -1160,7 +1159,8 @@ ukfull$RREN_SUP <- recode(
                           8 ~ NA,
                           9 ~ NA,
                           3 ~ 0,
-                          2 ~ 1
+                          2 ~ 1,
+                          1 ~ 1
                           )
 ukfull <- ukfull %>% 
   mutate(RREN_SUP = factor(RREN_SUP, labels = c("No pre-tx support", "Pre-tx support")))
