@@ -1,0 +1,225 @@
+---
+title: "ForGabi"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 12, results="asis")
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(ggsci)
+library(plotly)
+library(hrbrthemes)
+options(scipen=999)
+```
+
+```{r dataprep and plot Feb 23}
+# data preparation
+# same essentially as what you have above, just created my own LDLT_only dataframe
+# (my understanding of the data may need double checking from you, but
+# if the bound3 source countains all cases then I think this should be correct)
+
+
+#bound3 <- readRDS(file = "./bound3forgraph.rds")
+# bound2 <- read_csv("/Users/Ivanics/Desktop/GitHub/International-LDLT/Datafile/merged.csv", guess_max = 300000)
+bound2 <- read_csv("./merged.csv", guess_max = 300000)
+bound3 <- bound2 %>% filter(DTYPE == "LDLT" & GRAFT_TYPE == "Segmental")
+bound3 <- bound3 %>% filter(!is.na(GRAFT_LATERALITY))
+
+# From Tommy's implementation above:
+#Here i create a count per year per country (how many transplants done per country per year)
+COUNTYEAR <- bound3 %>% 
+  group_by(TX_YR, COUNTRY) %>% 
+  mutate(countYEAR = n()) %>% 
+  ungroup() %>%
+  group_by(TX_YR,COUNTRY) %>%
+  mutate(countYEARnew = n()) %>%
+  ungroup()
+
+COUNTYEAR <- COUNTYEAR %>% select(TX_YR, COUNTRY, countYEAR, countYEARnew)
+# Total transplants counts by year, by country, 2008-2018
+total_transplants_country_year <- unique(COUNTYEAR)
+View(total_transplants_country_year)
+
+View(COUNTYEAR)
+#print(total_transplants_country_year,n=50)
+
+# Total transplants counts  for living donors, according to
+# additional filter of GRAFT_TYPE you used above,
+# by year, by country, 2008-2018
+LDLT_country_year <- bound3 %>%
+  filter(!is.na(GRAFT_LATERALITY)) %>% 
+  group_by(TX_YR, COUNTRY) %>%
+  mutate(countYEAR = n()) %>%
+  ungroup() %>%
+  select(TX_YR, COUNTRY, countYEAR, GRAFT_LATERALITY) %>%
+  unique()
+
+LDLT_rightlobe_country_year <- bound3 %>%
+  filter(!is.na(GRAFT_LATERALITY) & GRAFT_LATERALITY == "Right lobe") %>% 
+  group_by(TX_YR, COUNTRY) %>%
+  mutate(countYEAR = n()) %>%
+  ungroup() %>%
+  select(TX_YR, COUNTRY, countYEAR, GRAFT_LATERALITY) %>%
+  unique()
+
+LDLT_leftlobe_country_year <- bound3 %>%
+  filter(!is.na(GRAFT_LATERALITY) & GRAFT_LATERALITY == "Left lobe") %>% 
+  group_by(TX_YR, COUNTRY) %>%
+  mutate(countYEAR = n()) %>%
+  ungroup() %>%
+  select(TX_YR, COUNTRY, countYEAR, GRAFT_LATERALITY) %>%
+  unique()
+
+LDLT_leftlateral_country_year <- bound3 %>%
+  filter(!is.na(GRAFT_LATERALITY) & GRAFT_LATERALITY == "Left lateral segment") %>% 
+  group_by(TX_YR, COUNTRY) %>%
+  mutate(countYEAR = n()) %>%
+  ungroup() %>%
+  select(TX_YR, COUNTRY, countYEAR, GRAFT_LATERALITY) %>%
+  unique()
+
+
+
+# set aside the data we care about labeling
+labeled_subset_LDLT_country_year <- subset(LDLT_country_year,
+                                           TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
+labeled_subset_total_transplants_country_year <- subset(total_transplants_country_year, 
+                                                        TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018))
+
+US_labeled_subset_LDLT_country_year <- filter(labeled_subset_LDLT_country_year, COUNTRY == "US")
+US_labeled_subset_total_transplants_country_year <- filter(labeled_subset_total_transplants_country_year, COUNTRY=="US")
+
+UK_labeled_subset_LDLT_country_year <- filter(labeled_subset_LDLT_country_year, COUNTRY == "UK")
+UK_labeled_subset_total_transplants_country_year <- filter(labeled_subset_total_transplants_country_year, COUNTRY=="UK")
+
+CAN_labeled_subset_LDLT_country_year <- filter(labeled_subset_LDLT_country_year, COUNTRY == "CAN")
+CAN_labeled_subset_total_transplants_country_year <- filter(labeled_subset_total_transplants_country_year, COUNTRY=="CAN")
+
+#ordering
+
+US_labeled_subset_LDLT_country_year <- US_labeled_subset_LDLT_country_year[order(US_labeled_subset_LDLT_country_year$TX_YR),]
+
+US_labeled_subset_total_transplants_country_year <- US_labeled_subset_total_transplants_country_year[order(US_labeled_subset_total_transplants_country_year$TX_YR),]
+
+UK_labeled_subset_LDLT_country_year <- UK_labeled_subset_LDLT_country_year[order(UK_labeled_subset_LDLT_country_year$TX_YR),]
+
+#ukholder <- data.frame(TX_YR = c(2014), COUNTRY=c("UK"), countYEAR = c(8), countYEARnew = c(4))
+
+#UK_labeled_subset_total_transplants_country_year<- rbind(UK_labeled_subset_total_transplants_country_year,ukholder )
+
+UK_labeled_subset_total_transplants_country_year <- UK_labeled_subset_total_transplants_country_year[order(UK_labeled_subset_total_transplants_country_year$TX_YR),]
+
+CAN_labeled_subset_LDLT_country_year <- CAN_labeled_subset_LDLT_country_year[order(CAN_labeled_subset_LDLT_country_year$TX_YR),]
+
+CAN_labeled_subset_total_transplants_country_year <- CAN_labeled_subset_total_transplants_country_year[order(CAN_labeled_subset_total_transplants_country_year$TX_YR),]
+
+
+
+# table(LDLT_rightlobe_country_year$COUNTRY, LDLT_rightlobe_country_year$GRAFT_LATERALITY)
+# table(total_transplants_country_year$COUNTRY)
+
+
+# ggplot object - faceted
+#View(total_transplants_country_year) #2014 and 2009 missing for the uk
+#View(GRAFTTYPE_country_year)
+#table(GRAFTTYPE_country_year$COUNTRY, GRAFTTYPE_country_year$TX_YR)
+#table(total_transplants_country_year$COUNTRY, total_transplants_country_year$TX_YR)
+
+total_transplants_country_year$COUNTRY <- factor(total_transplants_country_year$COUNTRY, levels = c("US", "CAN", "UK"))
+LDLT_country_year$COUNTRY <- factor(LDLT_country_year$COUNTRY, levels = c("US", "CAN", "UK"))
+LDLT_rightlobe_country_year <- factor(LDLT_rightlobe_country_year$COUNTRY, levels = c("US", "CAN", "UK"))
+LDLT_leftlobe_country_year <- factor(LDLT_leftlobe_country_year$COUNTRY, levels = c("US", "CAN", "UK"))
+
+
+
+#length(GRAFTTYPE_country_year$GRAFT_LATERALITY)
+# bcd8c1 mint
+# e9d985 flax
+# colour palette: https://coolors.co/222e50-439a86-007991-e9d985-389957
+
+ggp <- ggplot(NULL, aes(TX_YR, countYEAR)) +    # Draw ggplot2 plot based on two data frames
+  geom_area(fill  ="#E9D985",
+            alpha = 0.5, 
+            data = total_transplants_country_year, 
+            col = "#E9D985",
+            mapping = aes(fill = "Total")) +
+
+  geom_area(fill = c("#389957"), 
+            alpha = 0.5, 
+            data = LDLT_country_year, 
+            mapping = aes(fill = "LDLT"),
+            col = c("#389957")) +
+
+  facet_grid(factor(GRAFT_LATERALITY, levels = c("Right lobe", "Left lobe", "Left lateral segment")) ~ 
+               factor(COUNTRY, levels = c("US", "CAN", "UK")), scales="free_y", margins = TRUE) +
+  scale_x_continuous(limits = c(2008, 2018), 
+                     breaks = c(2008, 2010, 2012, 2014, 2016, 2018))+
+  scale_y_continuous(expand = expansion(mult = c(0, 0))) +
+  
+ 
+  # label the proportion of LDLT done for that year; label only 
+  # the years of the x-axis breaks (to save space, optional ofc)
+  # customize nudge amount for each country factor
+  geom_text(data = US_labeled_subset_LDLT_country_year, 
+             label = percent(US_labeled_subset_LDLT_country_year$countYEAR /
+                               US_labeled_subset_total_transplants_country_year$countYEAR, 
+                             accuracy = 0.1),
+            size = 5,
+            vjust = 0,
+            nudge_y = 5,
+            col = "#28193D",
+            fontface = "bold") +
+  geom_text(data = UK_labeled_subset_LDLT_country_year, 
+             label = percent(UK_labeled_subset_LDLT_country_year$countYEAR /
+                               UK_labeled_subset_total_transplants_country_year$countYEAR, 
+                             accuracy = 0.1),
+            size = 5,
+            vjust = 0,
+            nudge_y = 1,
+            col = "#28193D",
+            fontface = "bold") +
+  geom_text(data = CAN_labeled_subset_LDLT_country_year, 
+             label = percent(CAN_labeled_subset_LDLT_country_year$countYEAR /
+                               CAN_labeled_subset_total_transplants_country_year$countYEAR, 
+                             accuracy = 0.1),
+            size = 5,
+            vjust = 0,
+            nudge_y = -5,
+            col = "#28193D",
+            fontface = "bold") +
+  
+  xlab("\nYear of transplant") +
+  ylab("Number of transplants\n") +
+  theme_minimal() +
+
+  theme(axis.title = element_text(size = 14, family = "serif"),
+        strip.text.y = element_text(angle = 0, 
+                                    size = 20,
+                                    face = "bold",
+                                    colour = "#28193D",
+                                    family = "serif"),
+        axis.text.x = element_text(size = 18, colour = "#424949"),
+        axis.title.x = element_text(hjust = 0.95, colour = "#424949"),
+        axis.title.y = element_text(angle = 90, hjust = 1, colour = "#424949"),
+        axis.text.y = element_text(size = 14, colour = "#424949"), 
+        panel.spacing.y = unit(3, "lines"),
+        panel.grid.major = element_line(colour = "#F2F4F4"),
+        panel.grid.minor = element_blank()) 
+  
+
+ 
+ggp
+```
+
+
+
