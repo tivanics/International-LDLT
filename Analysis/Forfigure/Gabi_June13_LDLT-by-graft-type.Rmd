@@ -1,0 +1,304 @@
+---
+title: "ForGabi"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 12, results="asis")
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(ggsci)
+library(plotly)
+library(hrbrthemes)
+library(ggrepel)
+options(scipen=999)
+options(ggrepel.max.overlaps = Inf)
+```
+
+```{r dataprep May19}
+# data preparation
+
+# (my understanding of the data may need double checking from you, but
+# if the bound3 source contains all cases, and all LDLTs are classified somehow,
+# then this should be correct)
+# 
+
+bound2 <- read_csv("./merged.csv", guess_max = 300000)
+bound3 <- bound2 %>% filter(DTYPE == "LDLT" & GRAFT_TYPE == "Segmental")
+bound3 <- bound3 %>% filter(!is.na(GRAFT_LATERALITY))
+rm(bound2)
+
+# bound3$GRAFT_LATERALITY[bound3$GRAFT_LATERALITY == "Left lateral segment"] <- "Left lobe"
+
+bound3 <- bound3 %>% mutate(
+  GRAFT_LATERALITY = case_when(
+    GRAFT_LATERALITY == "Left lateral segment" &
+      RAGE == 36 & DAGE == 47 & UHN == 1 & TX_YR == 2010 ~ "Left lobe",
+    
+    GRAFT_LATERALITY == "Left lateral segment" &
+      COUNTRY == "CAN" &
+      TX_YR == 2010 & RAGE != 36 & DAGE != 47 & UHN == 1 ~ "Right lobe",
+    
+    GRAFT_LATERALITY == "Right lobe" ~ "Right lobe",
+    
+    GRAFT_LATERALITY == "Left lobe" ~ "Left lobe",
+    
+    is.na(GRAFT_LATERALITY) ~ NA_character_,
+    
+    TRUE ~ "Left lobe"
+    
+  )
+)
+
+# Total transplants counts  for living donors, according to
+# additional filter of GRAFT_TYPE you used above,
+# by year, by country, 2008-2018
+LDLT_country_year <- bound3 %>%
+  filter(!is.na(GRAFT_LATERALITY)) %>%
+  group_by(TX_YR, COUNTRY) %>%
+  mutate(countYEAR = n()) %>%
+  ungroup() %>%
+  select(TX_YR, COUNTRY, countYEAR) %>%
+  unique() %>%
+  arrange(TX_YR)
+LDLT_country_year$GRAFT_LATERALITY <- "Total LDLT"
+LDLT_country_year$percent_total <- ""
+
+LDLT_rightlobe_country_year <- bound3 %>%
+  filter(!is.na(GRAFT_LATERALITY) & GRAFT_LATERALITY == "Right lobe") %>% 
+  group_by(TX_YR, COUNTRY) %>%
+  mutate(countYEAR = n()) %>%
+  ungroup() %>%
+  select(TX_YR, COUNTRY, countYEAR, GRAFT_LATERALITY) %>%
+  unique() %>%
+  arrange(TX_YR)
+LDLT_rightlobe_country_year$percent_total <- ""
+
+LDLT_leftlobe_country_year <- bound3 %>%
+  filter(!is.na(GRAFT_LATERALITY) & (GRAFT_LATERALITY == "Left lobe")) %>% 
+  group_by(TX_YR, COUNTRY) %>%
+  mutate(countYEAR = n()) %>%
+  ungroup() %>%
+  select(TX_YR, COUNTRY, countYEAR, GRAFT_LATERALITY) %>%
+  unique() %>%
+  arrange(TX_YR)
+LDLT_leftlobe_country_year$percent_total <- ""
+# LDLT_leftlobe_country_year$GRAFT_LATERALITY <- "Left lobe"
+
+# LDLT_leftlateral_country_year <- bound3 %>%
+#   filter(!is.na(GRAFT_LATERALITY) & GRAFT_LATERALITY == "Left lateral segment") %>%
+#   group_by(TX_YR, COUNTRY) %>%
+#   mutate(countYEAR = n()) %>%
+#   ungroup() %>%
+#   select(TX_YR, COUNTRY, countYEAR, GRAFT_LATERALITY) %>%
+#   unique() %>%
+#   arrange(TX_YR)
+# # LDLT_leftlateral_country_year$percent_total <- ""
+# LDLT_leftlateral_country_year$GRAFT_LATERALITY <- "Left lobe"
+
+rm(bound3)
+
+
+# Combine the above subtables into 1 large table, factored by country and by GRAFT_TYPE
+LDLT_country_year_type <- bind_rows(LDLT_leftlobe_country_year, LDLT_rightlobe_country_year) %>%
+  bind_rows(LDLT_country_year) %>%
+  group_by(COUNTRY, TX_YR, GRAFT_LATERALITY)
+  
+
+
+LDLT_country_year_type$COUNTRY <- factor(LDLT_country_year_type$COUNTRY, levels = c("US", "CAN", "UK"))
+
+# #  Grouping left lobes together with left lateral segments and calling the combined group “Left lobe"
+# LDLT_country_year_type$GRAFT_LATERALITY[LDLT_country_year_type$GRAFT_LATERALITY == "Left lateral segment"] <- "Left lobe"
+
+LDLT_country_year_type$GRAFT_LATERALITY <- factor(LDLT_country_year_type$GRAFT_LATERALITY, 
+                                                  levels = c("Total LDLT",
+                                                             "Right lobe", 
+                                                             "Left lobe")) 
+                                                             # "Left lateral segment"))
+
+rm(LDLT_country_year)
+rm(LDLT_leftlateral_country_year)
+rm(LDLT_leftlobe_country_year)
+rm(LDLT_rightlobe_country_year)
+
+
+# set aside and order the data we care about labeling:
+labeled_subset_country_year_type <- subset(LDLT_country_year_type,
+                                           TX_YR %in% c(2008, 2010, 2012, 2014, 2016, 2018)) %>%
+  arrange(TX_YR)
+
+# labeled_subset_country_year_type <- labeled_subset_country_year_type %>% 
+#   summarise(countYEAR = sum(countYEAR))
+
+
+#  creating the percentage labels
+for(yr in unique(labeled_subset_country_year_type$TX_YR)){
+  
+  for(country in unique(labeled_subset_country_year_type$COUNTRY)){
+    
+    total_count <- labeled_subset_country_year_type[labeled_subset_country_year_type$TX_YR == yr
+                                                  & labeled_subset_country_year_type$GRAFT_LATERALITY=="Total LDLT"
+                                                  & labeled_subset_country_year_type$COUNTRY==country,]$countYEAR
+    rightlobe_count <- labeled_subset_country_year_type[labeled_subset_country_year_type$TX_YR == yr
+                                                  & labeled_subset_country_year_type$GRAFT_LATERALITY=="Right lobe"
+                                                  & labeled_subset_country_year_type$COUNTRY==country,]$countYEAR
+    leftlobe_count<- labeled_subset_country_year_type[labeled_subset_country_year_type$TX_YR == yr
+                                                  & labeled_subset_country_year_type$GRAFT_LATERALITY=="Left lobe"
+                                                  & labeled_subset_country_year_type$COUNTRY==country,]$countYEAR
+    # leftlateral_count <- labeled_subset_country_year_type[labeled_subset_country_year_type$TX_YR == yr
+    #                                               & labeled_subset_country_year_type$GRAFT_LATERALITY=="Left lateral segment"
+    #                                               & labeled_subset_country_year_type$COUNTRY==country,]$countYEAR
+  
+    
+    
+    if(0 == length(rightlobe_count)){
+      rightlobe_count <- 0
+      print("oops no righlobe")
+    }
+    if(0 == length(leftlobe_count)){
+      leftlobe_count <- 0
+      print("oops no leftlobe")
+    }
+    # if(0 == length(leftlateral_count)){
+    #   leftlateral_count <- 0
+    #   # print("oops no lateral")
+    # }
+ 
+    total_pc <- percent(total_count / total_count, accuracy = 0.1)
+    rightlobe_pc <-percent(rightlobe_count / total_count, accuracy = 0.1)
+    leftlobe_pc <-percent(leftlobe_count / total_count, accuracy = 0.1)
+    # leftlateral_pc <-percent(leftlateral_count / total_count, accuracy = 0.1)
+    
+    LDLT_country_year_type[LDLT_country_year_type$TX_YR == yr
+                                     & LDLT_country_year_type$GRAFT_LATERALITY=="Right lobe"
+                                     & LDLT_country_year_type$COUNTRY==country,]$percent_total <-
+      rightlobe_pc
+    LDLT_country_year_type[LDLT_country_year_type$TX_YR == yr
+                                     & LDLT_country_year_type$GRAFT_LATERALITY=="Left lobe"
+                                     & LDLT_country_year_type$COUNTRY==country,]$percent_total <-
+      leftlobe_pc
+    # LDLT_country_year_type[LDLT_country_year_type$TX_YR == yr
+    #                                  & LDLT_country_year_type$GRAFT_LATERALITY=="Left lateral segment"
+    #                                  & LDLT_country_year_type$COUNTRY==country,]$percent_total <-
+    #   leftlateral_pc
+   
+  }
+  
+}
+
+```
+
+``` {r ggplot2}
+# TODO: arrange plot
+# bcd8c1 mint
+# e9d985 flax
+# colour palette: https://coolors.co/222e50-439a86-007991-e9d985-389957
+# One of the reviewers asked if we could evaluate the trends in the use of various graft types in the different countries.
+# the graph below shows, compared to total LDLT completed, which was done of the various graft types. 
+# Each row is a different country.
+# Each column is a different graft type. Each graft type is a different colour. "Total LDLT" is a graft type representing all LDLT performed
+
+# ggplot object - faceted
+ggp <- ggplot(LDLT_country_year_type, aes(x = TX_YR, y = countYEAR, colour = GRAFT_LATERALITY)) +   
+  geom_area(position='stack',
+            alpha = 0.4,
+            data = dplyr::filter(LDLT_country_year_type, GRAFT_LATERALITY %in% "Total LDLT"),
+            aes(colour = "Total LDLT", fill = "Total LDLT")) +
+
+  geom_area(position='stack',
+            alpha = 0.75, 
+            data = dplyr::filter(LDLT_country_year_type, GRAFT_LATERALITY %in% "Right lobe"), 
+            aes(colour ="Right lobe", fill ="Right lobe"),
+            ) +
+  
+  geom_area(position='stack',
+            alpha = 0.75, 
+            data = dplyr::filter(LDLT_country_year_type, GRAFT_LATERALITY %in% "Left lobe"), 
+            aes(colour = "Left lobe", fill = "Left lobe"),
+            ) +
+
+  # geom_area(
+  #           alpha = 0.75,
+  #           data = filter(LDLT_country_year_type, LDLT_country_year_type$GRAFT_LATERALITY == "Left lateral segment"),
+  #           aes(colour = "Left lateral segment", fill = "Left lateral segment"),
+  #           ) +
+
+  facet_grid(COUNTRY~., scales="free_y") +
+  scale_x_continuous(limits = c(2008, 2018), 
+                     breaks = c(2008, 2010, 2012, 2014, 2016, 2018))+
+  scale_y_continuous(expand = expansion(mult = c(0, 0))) +
+  
+ 
+  # label the proportion of LDLT done for that year; label only 
+  # the years of the x-axis breaks (to save space, optional ofc)
+  geom_label_repel(aes(label = percent_total),
+            size = 5,
+            nudge_x = 0.5,
+            vjust = 0,
+            fontface = "bold",
+            show.legend = F) +
+  
+  
+  xlab("\nYear of transplant") +
+  ylab("Number of transplants\n") +
+  
+   scale_color_manual(name = "Graft Type",
+                       breaks = c("Total LDLT", "Right lobe", "Left lobe"),
+                       values = c("Total LDLT" = "#bcd8c1",
+                                  "Right lobe" = "#439a86",
+                                  "Left lobe" = "#222e50")
+                                  # "Left lateral segment" = "#222e50")
+                       ) +
+  scale_fill_manual(name = "Graft Type", 
+                       breaks = c("Total LDLT", "Right lobe", "Left lobe"),
+                       values = c("Total LDLT" = "#bcd8c1", 
+                                  "Right lobe" = "#439a86", 
+                                  "Left lobe" = "#222e50") 
+                                  # "Left lateral segment" = "#222e50")
+                       ) +
+  ggtitle("Proportion of LDLT performed by graft type (2008-2018)") +
+
+  theme_minimal() +
+
+  theme(axis.title = element_text(size = 16, family = "serif"),
+        strip.text.y = element_text(angle = 0, 
+                                    size = 20,
+                                    face = "bold",
+                                    colour = "#28193D",
+                                    family = "serif"),
+        axis.text.x = element_text(size = 12, colour = "#424949"),
+        axis.title.x = element_text(hjust = 0.5, colour = "#424949"),
+        axis.title.y = element_text(angle = 90, hjust = 0.5, colour = "#424949"),
+        axis.text.y = element_text(size = 12, colour = "#424949"), 
+        plot.title = element_text(size = 30, colour = "#424949"),
+        panel.spacing.y = unit(3, "lines"),
+        panel.grid.major = element_line(colour = "#F2F4F4"),
+        panel.grid.minor = element_blank(),
+        legend.position="bottom",
+        legend.direction = "horizontal")
+ 
+  
+ 
+ggp
+
+
+```
+
+```{r ggsave}
+ggsave(filename = "./proportional_LDLT_by_type_year_country.png", device = "png", plot = ggp, scale = 2, dpi = "retina", width = 7, height = 10)
+
+ggsave(filename = "./proportional_LDLT_by_type_year_country.pdf", device = "pdf", plot = ggp, scale = 2, dpi = "retina",  width = 7, height = 10)
+
+```
+
+
